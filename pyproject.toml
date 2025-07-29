@@ -1,0 +1,83 @@
+[project]
+name = "mcp-server-rabbitmq"
+version = "2.2.0"
+description = "A Model Context Protocol server providing access to RabbitMQ by LLMs"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Ken Liao" }]
+maintainers = [{ name = "Ken Liao", email = "kenliao94@gmail.com" }]
+keywords = ["rabbitmq", "mcp", "llm", "automation"]
+license = { text = "Apache-2.0" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "markdownify>=0.13.1",
+    "mcp>=1.6.0",
+    "pika>=1.3.2",
+    "protego>=0.3.1",
+    "pydantic>=2.0.0",
+    "readabilipy>=0.2.0",
+    "requests>=2.32.3",
+    "fastmcp>=2.7.1",
+    "loguru>=0.7.3",
+]
+
+[project.scripts]
+mcp-server-rabbitmq = "mcp_server_rabbitmq.server:main"
+
+[project.urls]
+Homepage = "https://github.com/amazon-mq/mcp-server-rabbitmq"
+Source = "https://github.com/amazon-mq/mcp-server-rabbitmq"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_server_rabbitmq"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+    "mcp_server_rabbitmq/__init__.py:__version__"
+]
+update_changelog_on_bump = true
+
+[tool.uv]
+dev-dependencies = ["pyright>=1.1.389", "ruff>=0.7.3", "pytest>=8.3.5"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+exclude = ["uv.lock"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "Q"]
+ignore = ["E203", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mcp_server_rabbitmq"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"

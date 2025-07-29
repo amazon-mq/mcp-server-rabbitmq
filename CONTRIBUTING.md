@@ -1,59 +1,125 @@
-# Contributing Guidelines
+# Contributing to mcp-server-rabbitmq
 
-Thank you for your interest in contributing to our project. Whether it's a bug report, new feature, correction, or additional
-documentation, we greatly value feedback and contributions from our community.
+Thank you for your interest in contributing to mcp-server-rabbitmq! This document provides guidelines and instructions for contributing to this project.
 
-Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
-information to effectively respond to your bug report or contribution.
+## Development Environment Setup
 
+### Prerequisites
 
-## Reporting Bugs/Feature Requests
+- Python 3.10 or higher
+- [uv](https://github.com/astral-sh/uv) for dependency management
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+### Setting Up Your Development Environment
 
-When filing an issue, please check existing open, or recently closed, issues to make sure somebody else hasn't already
-reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/amazon-mq/mcp-server-rabbitmq.git
+   cd mcp-server-rabbitmq
+   ```
 
-* A reproducible test case or series of steps
-* The version of our code being used
-* Any modifications you've made relevant to the bug
-* Anything unusual about your environment or deployment
+2. Create and activate a virtual environment using `uv`:
+   ```bash
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
+3. Install dependencies:
+   ```bash
+   uv pip install -e .
+   uv pip install -r requirements-dev.txt  # If available, otherwise use dev dependencies from pyproject.toml
+   ```
 
-## Contributing via Pull Requests
-Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
+4. Install pre-commit hooks:
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
 
-1. You are working against the latest source on the *main* branch.
-2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
+## Development Workflow
 
-To send us a pull request, please:
+### Code Style
 
-1. Fork the repository.
-2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
-4. Commit to your fork using clear commit messages.
-5. Send us a pull request, answering any default questions in the pull request interface.
-6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
+This project follows a specific code style enforced by Ruff. Key style guidelines include:
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
-[creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
+- Line length: 99 characters
+- Quote style: Double quotes
+- Indentation: 4 spaces
+- Import sorting: Using isort configuration via Ruff
 
+The pre-commit hooks will automatically check and fix many style issues when you commit.
 
-## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any 'help wanted' issues is a great place to start.
+### Running Tests
 
+Tests are written using pytest. To run the tests:
 
-## Code of Conduct
-This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
-For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
-opensource-codeofconduct@amazon.com with any additional questions or comments.
+```bash
+pytest
+```
 
+For more verbose output:
 
-## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+```bash
+pytest -v
+```
 
+### Pre-commit Hooks
 
-## Licensing
+This project uses pre-commit hooks to ensure code quality. The hooks include:
 
-See the [LICENSE](LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+- Ruff for linting and formatting
+- Trailing whitespace removal
+- End-of-file fixing
+- YAML and TOML checking
+- Large file checking
+
+## Pull Request Process
+
+1. Fork the repository and create a new branch from `main`.
+2. Make your changes, following the code style guidelines.
+3. Add tests for any new functionality.
+4. Ensure all tests pass.
+5. Update documentation as needed.
+6. Submit a pull request with a clear description of the changes.
+
+### Commit Messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for commit messages, managed by Commitizen. Your commit messages should follow this format:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Common types include:
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding or modifying tests
+- `chore`: Routine tasks, maintenance, etc.
+
+## Versioning
+
+This project uses semantic versioning. Version bumps are handled by Commitizen based on commit messages.
+
+## Project Structure
+
+- `mcp_server_rabbitmq/`: Main package directory
+  - `server.py`: Main server implementation
+  - `connection.py`: RabbitMQ connection handling
+  - `admin.py`: RabbitMQ administration
+  - `handlers.py`: Request handlers
+  - `constant.py`: Constants and configuration
+- `tests/`: Test directory
+
+## License
+
+By contributing to this project, you agree that your contributions will be licensed under the project's [Apache 2.0 License](LICENSE).
+
+## Questions or Need Help?
+
+If you have questions or need help with the contribution process, please open an issue in the repository.
