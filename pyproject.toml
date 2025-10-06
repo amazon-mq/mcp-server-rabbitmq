@@ -72,7 +72,7 @@ ignore = ["E203", "E501"]
 known-first-party = ["mcp_server_rabbitmq"]
 
 [tool.ruff.format]
-quote-style = "double"
+quote-style = "single"
 indent-style = "space"
 line-ending = "auto"
 
