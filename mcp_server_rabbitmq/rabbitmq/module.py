@@ -60,7 +60,7 @@ class RabbitMQModule:
 
     def __register_critical_tools(self):
         @self.mcp.tool()
-        def rabbimq_broker_initialize_connection(
+        def rabbitmq_broker_initialize_connection(
             broker_hostname: str,
             username: str,
             password: str,
@@ -92,7 +92,7 @@ class RabbitMQModule:
                 raise e
 
         @self.mcp.tool()
-        def rabbimq_broker_initialize_connection_with_oauth(
+        def rabbitmq_broker_initialize_connection_with_oauth(
             broker_hostname: str,
             oauth_token: str,
         ) -> str:

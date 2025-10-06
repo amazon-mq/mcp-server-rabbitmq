@@ -1,0 +1,51 @@
+{
+  "$schema": "https://raw.githubusercontent.com/aws/amazon-q-developer-cli/refs/heads/main/schemas/agent-v1.json",
+  "name": "rabbitmq-mcp-tester",
+  "description": "",
+  "prompt": null,
+  "mcpServers": {
+    "rabbitmq": {
+      "command": "/Users/qrl/.local/bin/uv",
+      "args": [
+          "--directory",
+          "/Users/qrl/amzn/personal_workspace/amazon_mq_github/mcp-server-rabbitmq",
+          "run",
+          "mcp-server-rabbitmq",
+          "--allow-mutative-tools"
+      ]
+    }
+  },
+  "tools": [
+    "*"
+  ],
+  "toolAliases": {},
+  "allowedTools": [
+    "@rabbitmq/rabbitmq_broker_initialize_connection_with_oauth",
+    "@rabbitmq/rabbitmq_broker_initialize_connection",
+    "@rabbitmq/rabbitmq_broker_get_cluster_nodes_info",
+    "@rabbitmq/rabbitmq_broker_get_exchange_info",
+    "@rabbitmq/rabbitmq_broker_get_queue_info",
+    "@rabbitmq/rabbitmq_broker_get_shovel_info",
+    "@rabbitmq/rabbitmq_broker_is_in_alarm",
+    "@rabbitmq/rabbitmq_broker_is_quorum_critical",
+    "@rabbitmq/rabbitmq_broker_list_connections",
+    "@rabbitmq/rabbitmq_broker_list_consumers",
+    "@rabbitmq/rabbitmq_broker_list_exchanges",
+    "@rabbitmq/rabbitmq_broker_list_queues",
+    "@rabbitmq/rabbitmq_broker_list_shovels",
+    "@rabbitmq/rabbitmq_broker_list_users",
+    "@rabbitmq/rabbitmq_broker_list_vhosts",
+    "@rabbitmq/rabbitmq_broker_get_guideline",
+    "@rabbitmq/rabbitmq_broker_get_broker_definition"
+  ],
+  "resources": [
+    "file://AmazonQ.md",
+    "file://AGENTS.md",
+    "file://README.md",
+    "file://.amazonq/rules/**/*.md"
+  ],
+  "hooks": {},
+  "toolsSettings": {},
+  "useLegacyMcpJson": true,
+  "model": null
+}
