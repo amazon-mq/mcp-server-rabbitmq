@@ -1,5 +1,5 @@
 [project]
-name = "mcp-server-rabbitmq"
+name = "amq-mcp-server-rabbitmq"
 version = "2.2.0"
 description = "A Model Context Protocol server providing access to RabbitMQ by LLMs"
 readme = "README.md"
