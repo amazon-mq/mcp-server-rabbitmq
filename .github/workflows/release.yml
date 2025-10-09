@@ -1,0 +1,91 @@
+name: Release to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras --dev
+
+      - name: Run tests
+        run: |
+          if [ -d "tests" ]; then
+            uv run pytest
+          else
+            echo "No tests directory found, skipping tests"
+          fi
+
+      - name: Run pyright
+        run: uv run pyright
+
+      - name: Run ruff checks
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+
+      - name: Run bandit security check
+        run: |
+          uv pip install bandit[toml]
+          uv run bandit -r -c pyproject.toml mcp_server_rabbitmq/
+
+      - name: Build package
+        run: uv build
+
+      - name: Upload distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/amq-mcp-server-rabbitmq
+    steps:
+      - name: Download distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ github.ref_name }}"
+          gh release create "$VERSION" \
+            --generate-notes \
+            --verify-tag
