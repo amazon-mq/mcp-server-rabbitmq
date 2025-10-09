@@ -3,7 +3,7 @@ name: Release to PyPI
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '[0-9][0-9][0-9][0-9].[0-9]+.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
 
 permissions:
   contents: write
@@ -11,16 +11,19 @@ permissions:
 
 jobs:
   build:
-    name: Build Distribution
+    name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
+      - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
           python-version: "3.10"
 
@@ -38,10 +41,11 @@ jobs:
       - name: Run pyright
         run: uv run pyright
 
-      - name: Run ruff checks
-        run: |
-          uv run ruff format --check .
-          uv run ruff check .
+      - name: Run ruff format check
+        run: uv run ruff format --check .
+
+      - name: Run ruff lint
+        run: uv run ruff check .
 
       - name: Run bandit security check
         run: |
@@ -74,18 +78,3 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  release:
-    name: Create GitHub Release
-    needs: publish
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ github.ref_name }}"
-          gh release create "$VERSION" \
-            --generate-notes \
-            --verify-tag
