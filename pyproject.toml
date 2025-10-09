@@ -46,16 +46,6 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_server_rabbitmq"]
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.1.0"
-tag_format = "v$version"
-version_files = [
-    "pyproject.toml:version",
-    "mcp_server_rabbitmq/__init__.py:__version__"
-]
-update_changelog_on_bump = true
-
 [tool.uv]
 dev-dependencies = ["pyright>=1.1.389", "ruff>=0.7.3", "pytest>=8.3.5"]
 
@@ -85,3 +75,9 @@ python_functions = "test_*"
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
 skips = ["B101"]
+
+[tool.pyright]
+include = ["mcp_server_rabbitmq"]
+exclude = ["**/__pycache__", ".venv"]
+typeCheckingMode = "basic"
+pythonVersion = "3.10"
