@@ -9,8 +9,8 @@ from fastmcp import FastMCP
 from fastmcp.server.auth import BearerAuthProvider
 from loguru import logger
 
-from mcp_server_rabbitmq.constant import MCP_SERVER_VERSION
-from mcp_server_rabbitmq.rabbitmq.module import RabbitMQModule
+from .constant import MCP_SERVER_VERSION
+from .rabbitmq.module import RabbitMQModule
 
 
 class RabbitMQMCPServer:
