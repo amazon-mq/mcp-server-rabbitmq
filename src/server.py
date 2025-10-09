@@ -57,7 +57,11 @@ def main():
     parser = argparse.ArgumentParser(
         description="A Model Context Protocol (MCP) server for RabbitMQ"
     )
-    parser.add_argument("--allow-mutative-tools", action="store_true", help="Enable tools that can mutate the states of RabbitMQ")
+    parser.add_argument(
+        "--allow-mutative-tools",
+        action="store_true",
+        help="Enable tools that can mutate the states of RabbitMQ",
+    )
     # Streamable HTTP specific configuration
     parser.add_argument("--http", action="store_true", help="Use Streamable HTTP transport")
     parser.add_argument(
