@@ -2,10 +2,8 @@ name: Release to PyPI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+    tags:
+      - '[0-9][0-9][0-9][0-9].[0-9]+.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
 
 permissions:
   contents: write
@@ -80,18 +78,3 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  release:
-    name: Create GitHub Release
-    needs: publish
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ github.ref_name }}"
-          gh release create "$VERSION" \
-            --generate-notes \
-            --verify-tag
