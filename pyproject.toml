@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.scripts]
-amq-mcp-server-rabbitm = "src.server:main"
+amq-mcp-server-rabbitmq = "src.server:main"
 
 [project.urls]
 Homepage = "https://github.com/amazon-mq/mcp-server-rabbitmq"
