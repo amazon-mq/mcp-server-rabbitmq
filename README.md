@@ -27,19 +27,7 @@ Use uvx directly in your MCP client config
       "rabbitmq": {
         "command": "uvx",
         "args": [
-            "mcp-server-rabbitmq@latest",
-            "--rabbitmq-host",
-            "<hostname ex. test.rabbit.com, localhost>",
-            "--port",
-            "<port number ex. 5672>",
-            "--username",
-            "<rabbitmq username>",
-            "--password",
-            "<rabbitmq password>",
-            "--api-port",
-            "<port number for the admin API, default to 15671>",
-            "--use-tls",
-            "<true if uses amqps, false otherwise>"
+            "amq-mcp-server-rabbitmq@latest",
         ]
       }
     }
@@ -59,26 +47,11 @@ Use uvx directly in your MCP client config
             "/path/to/repo/mcp-server-rabbitmq",
             "run",
             "mcp-server-rabbitmq",
-            "--rabbitmq-host",
-            "<hostname ex. test.rabbit.com, localhost>",
-            "--port",
-            "<port number ex. 5672>",
-            "--username",
-            "<rabbitmq username>",
-            "--password",
-            "<rabbitmq password>",
-            "--use-tls",
-            "<true if uses amqps, false otherwise>"
         ]
       }
     }
 }
 ```
-
-## Roadmap
-1. Full feature parity with `rabbitmqadmin`
-1. Support RabbitMQ OAuth instead of basic authentication
-
 
 ## Development
 
