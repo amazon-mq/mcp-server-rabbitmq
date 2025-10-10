@@ -46,7 +46,7 @@ Use uvx directly in your MCP client config
             "--directory",
             "/path/to/repo/mcp-server-rabbitmq",
             "run",
-            "mcp-server-rabbitmq",
+            "amq-mcp-server-rabbitmq",
         ]
       }
     }
