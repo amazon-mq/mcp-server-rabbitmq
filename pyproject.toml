@@ -1,6 +1,6 @@
 [project]
 name = "amq-mcp-server-rabbitmq"
-version = "2.2.0"
+version = "2.2.1"
 description = "A Model Context Protocol server providing access to RabbitMQ by LLMs"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mcp-server-rabbitmq = "mcp_server_rabbitmq.server:main"
+mcp-server-rabbitmq = "src.server:main"
 
 [project.urls]
 Homepage = "https://github.com/amazon-mq/mcp-server-rabbitmq"
@@ -44,7 +44,7 @@ build-backend = "hatchling.build"
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["mcp_server_rabbitmq"]
+packages = ["src"]
 
 [tool.uv]
 dev-dependencies = ["pyright>=1.1.389", "ruff>=0.7.3", "pytest>=8.3.5"]
@@ -80,4 +80,4 @@ skips = ["B101"]
 include = ["mcp_server_rabbitmq"]
 exclude = ["**/__pycache__", ".venv"]
 typeCheckingMode = "basic"
-pythonVersion = "3.12"
+pythonVersion = "3.10"
