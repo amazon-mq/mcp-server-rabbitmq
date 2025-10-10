@@ -3,7 +3,7 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "amq-mcp-server-rabbitmq"
-version = "2.2.0"
+version = "2.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
