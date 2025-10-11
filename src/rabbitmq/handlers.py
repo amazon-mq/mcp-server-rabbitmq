@@ -104,6 +104,9 @@ def handle_get_definition(rabbitmq_admin: RabbitMQAdmin) -> dict:
     """Get the server definition."""
     return rabbitmq_admin.get_broker_definition()
 
+def handle_update_definition(rabbitmq_admin: RabbitMQAdmin, server_definition: dict):
+    rabbitmq_admin.update_broker_definition(definition=server_definition)
+
 
 ## Connections
 

@@ -4,7 +4,7 @@ A [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol
 ## Features
 
 ### Manage your RabbitMQ message brokers using AI agent
-This MCP servers wraps admin APIs of a RabbitMQ broker as MCP tools. It also uses Pika to interact with RabbitMQ to operate at the message level. You can also specify a different RabbitMQ broker that you want to connect to mid-conversation (default is configured during server initialization).
+This MCP servers wraps admin APIs of a RabbitMQ broker as MCP tools.
 
 ### Supports streamable HTTP with FastMCP's `BearerAuthProvider`
 You can start a remote RabbitMQ MCP server by configuring your own IdP and 3rd party authorization provider.
@@ -28,6 +28,7 @@ Use uvx directly in your MCP client config
         "command": "uvx",
         "args": [
             "amq-mcp-server-rabbitmq@latest",
+            "--allow-mutative-tools"
         ]
       }
     }
@@ -47,11 +48,15 @@ Use uvx directly in your MCP client config
             "/path/to/repo/mcp-server-rabbitmq",
             "run",
             "amq-mcp-server-rabbitmq",
+            "--allow-mutative-tools"
         ]
       }
     }
 }
 ```
+
+### Configuration
+`--allow-mutative-tools`: if specificy, it will enable tools that can mutate broker states. Default is false.
 
 ## Development
 

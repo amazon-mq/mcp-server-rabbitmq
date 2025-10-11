@@ -39,6 +39,7 @@ from .handlers import (
     handle_list_vhosts,
     handle_purge_queue,
     handle_shovel,
+    handle_update_definition,
 )
 
 
@@ -311,5 +312,16 @@ class RabbitMQModule:
                 validate_rabbitmq_name(exchange, "Exchange name")
                 handle_delete_exchange(self.rmq_admin, exchange, vhost)
                 return f"Exchange {exchange} successfully deleted"
+            except Exception as e:
+                raise e
+
+        @self.mcp.tool()
+        def rabbitmq_broker_update_definition(server_definition: dict) -> str:
+            """Update The server definitions: exchanges, queues, bindings, users, virtual hosts, permissions, topic permissions, and parameters. Everything apart from messages."""
+            try:
+                if self.rmq_admin is None:
+                    raise AssertionError("RabbitMQ admin endpoints not connected.")
+                handle_update_definition(self.rmq_admin, server_definition)
+                return "Updated successfully"
             except Exception as e:
                 raise e
