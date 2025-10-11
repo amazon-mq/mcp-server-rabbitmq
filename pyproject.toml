@@ -1,6 +1,6 @@
 [project]
 name = "amq-mcp-server-rabbitmq"
-version = "2.2.3"
+version = "2.2.4"
 description = "A Model Context Protocol server providing access to RabbitMQ by LLMs"
 readme = "README.md"
 requires-python = ">=3.10"
