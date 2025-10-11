@@ -182,3 +182,7 @@ class RabbitMQAdmin:
         """Get the broker definition."""
         response = self._make_request("GET", "definitions")
         return response.json()
+
+    def update_broker_definition(self, definition: dict) -> None:
+        """Upload broker definitions (exchanges, queues, bindings, policies)."""
+        self._make_request("POST", "definitions", data=definition)
