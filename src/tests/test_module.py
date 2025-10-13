@@ -22,7 +22,7 @@ from src.rabbitmq.module import RabbitMQModule
 @pytest.fixture
 def mock_mcp():
     mcp = MagicMock()
-    mcp.tool = lambda: lambda f: f
+    mcp.tool.return_value = lambda f: f
     return mcp
 
 
@@ -38,11 +38,11 @@ class TestRabbitMQModule:
 
     def test_register_tools_read_only(self, module):
         module.register_rabbitmq_management_tools(allow_mutative_tools=False)
-        assert module.mcp.tool.called
+        assert module.mcp.tool.call_count > 0
 
     def test_register_tools_with_mutative(self, module):
         module.register_rabbitmq_management_tools(allow_mutative_tools=True)
-        assert module.mcp.tool.called
+        assert module.mcp.tool.call_count > 0
 
     @patch("src.rabbitmq.module.RabbitMQConnection")
     @patch("src.rabbitmq.module.RabbitMQAdmin")
