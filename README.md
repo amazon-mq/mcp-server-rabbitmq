@@ -62,7 +62,16 @@ Use uvx directly in your MCP client config
 ```
 
 ### Configuration
-`--allow-mutative-tools`: if specified, it will enable tools that can mutate broker states. Default is false.
+
+#### CLI Arguments
+
+- `--allow-mutative-tools`: Enable tools that can mutate the states of RabbitMQ. Default is false.
+- `--http`: Use Streamable HTTP transport instead of stdio.
+- `--server-port`: Port to run the MCP server on (default: 8888).
+- `--http-auth-jwks-uri`: JWKS URI for FastMCP Bearer Auth Provider.
+- `--http-auth-issuer`: Issuer for FastMCP Bearer Auth Provider.
+- `--http-auth-audience`: Audience for FastMCP Bearer Auth Provider.
+- `--http-auth-required-scopes`: Required scopes for FastMCP Bearer Auth Provider.
 
 ## Usage Examples
 
