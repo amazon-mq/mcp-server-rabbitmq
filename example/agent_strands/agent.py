@@ -1,6 +1,6 @@
 """Strands agent that uses RabbitMQ MCP server via stdio."""
 
-from mcp import stdio_client, StdioServerParameters
+from mcp import StdioServerParameters, stdio_client
 from strands import Agent
 from strands.tools.mcp import MCPClient
 
