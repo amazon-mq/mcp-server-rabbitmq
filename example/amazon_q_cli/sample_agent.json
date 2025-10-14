@@ -5,13 +5,9 @@
   "prompt": null,
   "mcpServers": {
     "rabbitmq": {
-      "command": "/Users/qrl/.local/bin/uv",
+      "command": "/Users/qrl/.local/bin/uvx",
       "args": [
-          "--directory",
-          "/Users/qrl/amzn/personal_workspace/amazon_mq_github/mcp-server-rabbitmq",
-          "run",
-          "mcp-server-rabbitmq",
-          "--allow-mutative-tools"
+          "amq-mcp-server-rabbitmq@latest"
       ]
     }
   },
