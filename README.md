@@ -23,7 +23,7 @@ The package is available on PyPI, you can use uvx without having to fork and bui
 
 ### PyPI
 
-https://pypi.org/project/mcp-server-rabbitmq/
+[https://pypi.org/project/mcp-server-rabbitmq/](https://pypi.org/project/amq-mcp-server-rabbitmq/)
 
 Use uvx directly in your MCP client config
 
