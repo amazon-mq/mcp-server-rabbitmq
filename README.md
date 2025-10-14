@@ -6,6 +6,12 @@ A [Model Context Protocol](https://www.anthropic.com/news/model-context-protocol
 ### Manage your RabbitMQ message brokers using AI agent
 This MCP servers wraps admin APIs of a RabbitMQ broker as MCP tools.
 
+### Connect to multiple brokers in one session
+Supports connecting to multiple RabbitMQ brokers within a single session, allowing you to manage multiple clusters simultaneously.
+
+### OAuth authentication support
+Connect to RabbitMQ brokers using OAuth tokens for secure, token-based authentication.
+
 ### Supports streamable HTTP with FastMCP's `BearerAuthProvider`
 You can start a remote RabbitMQ MCP server by configuring your own IdP and 3rd party authorization provider.
 
@@ -56,7 +62,40 @@ Use uvx directly in your MCP client config
 ```
 
 ### Configuration
-`--allow-mutative-tools`: if specificy, it will enable tools that can mutate broker states. Default is false.
+`--allow-mutative-tools`: if specified, it will enable tools that can mutate broker states. Default is false.
+
+## Usage Examples
+
+### Strands Agent Example
+
+See [example/agent_strands](example/agent_strands) for a complete example of using the RabbitMQ MCP server with Strands AI agents.
+
+```python
+from mcp import stdio_client, StdioServerParameters
+from strands import Agent
+from strands.tools.mcp import MCPClient
+
+stdio_mcp_client = MCPClient(lambda: stdio_client(
+    StdioServerParameters(
+        command="uvx",
+        args=["amq-mcp-server-rabbitmq@latest"]
+    )
+))
+
+with stdio_mcp_client:
+    tools = stdio_mcp_client.list_tools_sync()
+    agent = Agent(tools=tools)
+    
+    while True:
+        user_input = input("\nYou: ").strip()
+        if not user_input or user_input.lower() in ["exit", "quit"]:
+            break
+        agent(user_input)
+```
+
+### Amazon Q Developer CLI Example
+
+See [example/amazon_q_cli](example/amazon_q_cli) for configuration examples with Amazon Q Developer CLI.
 
 ## Development
 
