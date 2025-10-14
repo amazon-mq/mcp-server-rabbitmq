@@ -5,12 +5,13 @@ from strands import Agent
 from strands.tools.mcp import MCPClient
 
 # Connect to RabbitMQ MCP server using stdio transport
-stdio_mcp_client = MCPClient(lambda: stdio_client(
-    StdioServerParameters(
-        command="/Users/qrl/.local/bin/uvx",
-        args=["amq-mcp-server-rabbitmq@latest"]
+stdio_mcp_client = MCPClient(
+    lambda: stdio_client(
+        StdioServerParameters(
+            command="/Users/qrl/.local/bin/uvx", args=["amq-mcp-server-rabbitmq@latest"]
+        )
     )
-))
+)
 
 # Create an agent with MCP tools
 with stdio_mcp_client:
