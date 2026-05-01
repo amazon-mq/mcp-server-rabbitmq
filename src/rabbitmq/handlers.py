@@ -246,3 +246,24 @@ def handle_shovel(rabbitmq_admin: RabbitMQAdmin, shovel_name: str, vhost: str = 
 def handle_list_users(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
     """List all users on the RabbitMQ broker."""
     return rabbitmq_admin.list_users()
+
+
+## Bindings
+
+
+def handle_get_bindings(
+    rabbitmq_admin: RabbitMQAdmin,
+    queue: str | None = None,
+    exchange: str | None = None,
+    vhost: str = "/",
+) -> list[dict]:
+    """Get bindings, optionally filtered by queue or exchange."""
+    return rabbitmq_admin.get_bindings(queue=queue, exchange=exchange, vhost=vhost)
+
+
+## Nodes
+
+
+def handle_get_node_information(rabbitmq_admin: RabbitMQAdmin, node_name: str) -> dict:
+    """Get detailed information about a specific node."""
+    return rabbitmq_admin.get_node_information(node_name=node_name)
