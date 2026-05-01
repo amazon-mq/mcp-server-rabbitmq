@@ -335,3 +335,25 @@ class RabbitMQAdmin:
         vhost_encoded = quote(vhost, safe="")
         data = {"configure": configure, "write": write, "read": read}
         self._make_request("PUT", f"permissions/{vhost_encoded}/{user}", data=data)
+
+    # --- Phase 4B: Federation ---
+
+    def list_federation_upstreams(self, vhost: str = "/") -> list[dict]:
+        """List federation upstreams in a vhost."""
+        vhost_encoded = quote(vhost, safe="")
+        response = self._make_request("GET", f"parameters/federation-upstream/{vhost_encoded}")
+        return response.json()
+
+    def create_federation_upstream(self, name: str, uri: str, vhost: str = "/", **kwargs) -> None:
+        """Create a federation upstream."""
+        vhost_encoded = quote(vhost, safe="")
+        value = {"uri": uri, **kwargs}
+        data = {"value": value}
+        self._make_request(
+            "PUT", f"parameters/federation-upstream/{vhost_encoded}/{name}", data=data
+        )
+
+    def delete_federation_upstream(self, name: str, vhost: str = "/") -> None:
+        """Delete a federation upstream."""
+        vhost_encoded = quote(vhost, safe="")
+        self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name}")

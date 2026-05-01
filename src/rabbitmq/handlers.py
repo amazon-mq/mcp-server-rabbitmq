@@ -448,3 +448,143 @@ def handle_set_permissions(
 ) -> None:
     """Set permissions for a user in a vhost."""
     rabbitmq_admin.set_permissions(vhost, user, configure, write, read)
+
+
+################################################
+######   Phase 4B: Blue-Green Migration   ######
+################################################
+
+
+def handle_export_definitions(
+    rabbitmq_admin: RabbitMQAdmin,
+    transforms: list[str] | None = None,
+) -> dict:
+    """Export definitions with optional transformations."""
+    from .transforms import apply_transforms
+
+    defs = rabbitmq_admin.get_broker_definition()
+    if transforms:
+        defs = apply_transforms(defs, transforms)
+    return defs
+
+
+def handle_import_definitions(rabbitmq_admin: RabbitMQAdmin, definitions: dict) -> None:
+    """Import definitions to a broker."""
+    rabbitmq_admin.update_broker_definition(definitions)
+
+
+def handle_compare_definitions(defs_a: dict, defs_b: dict) -> dict:
+    """Compare definitions between two brokers. Returns differences."""
+    result: dict = {}
+    for section in ("queues", "exchanges", "bindings", "policies", "vhosts"):
+        items_a = {_item_key(section, item): item for item in defs_a.get(section, [])}
+        items_b = {_item_key(section, item): item for item in defs_b.get(section, [])}
+        keys_a, keys_b = set(items_a.keys()), set(items_b.keys())
+        missing_in_b = sorted(keys_a - keys_b)
+        extra_in_b = sorted(keys_b - keys_a)
+        if missing_in_b or extra_in_b:
+            result[section] = {}
+            if missing_in_b:
+                result[section]["missing_in_target"] = missing_in_b
+            if extra_in_b:
+                result[section]["extra_in_target"] = extra_in_b
+    return result if result else {"status": "identical"}
+
+
+def _item_key(section: str, item: dict) -> str:
+    """Generate a comparable key for a definition item."""
+    if section == "bindings":
+        return (
+            f"{item.get('source', '')}>{item.get('destination', '')}:{item.get('routing_key', '')}"
+        )
+    return item.get("name", str(item))
+
+
+def handle_setup_federation(
+    rabbitmq_admin: RabbitMQAdmin,
+    upstream_name: str,
+    upstream_uri: str,
+    vhost: str = "/",
+    policy_pattern: str = ".*",
+) -> dict:
+    """Set up federation upstream + policy. Checks for federation plugin first."""
+    # Check federation plugin is enabled
+    overview = rabbitmq_admin.get_overview()
+    # Also check exchange_types for federation presence
+    exchange_types = [et.get("name", "") for et in overview.get("exchange_types", [])]
+    has_federation = "x-federation-upstream" in exchange_types or any(
+        "federation" in str(p).lower() for p in overview.get("enabled_plugins", [])
+    )
+    if not has_federation:
+        return {
+            "status": "error",
+            "message": "Federation plugin not enabled. Enable rabbitmq_federation and "
+            "rabbitmq_federation_management on the target broker.",
+        }
+
+    rabbitmq_admin.create_federation_upstream(upstream_name, upstream_uri, vhost)
+    rabbitmq_admin.create_policy(
+        name=f"federation-{upstream_name}",
+        pattern=policy_pattern,
+        definition={"federation-upstream": upstream_name},
+        vhost=vhost,
+        apply_to="all",
+    )
+    return {
+        "status": "ok",
+        "upstream": upstream_name,
+        "policy": f"federation-{upstream_name}",
+        "pattern": policy_pattern,
+    }
+
+
+def handle_check_migration_readiness(
+    brokers: dict,
+    source_alias: str,
+    target_alias: str,
+) -> dict:
+    """Pre-flight check for blue-green migration."""
+    checks: list[dict] = []
+    go = True
+
+    # Check both aliases exist
+    for alias in (source_alias, target_alias):
+        if alias not in brokers:
+            checks.append({"check": f"broker '{alias}' connected", "status": "FAIL"})
+            go = False
+        else:
+            checks.append({"check": f"broker '{alias}' connected", "status": "PASS"})
+
+    if not go:
+        return {"go": False, "checks": checks}
+
+    # Check alarms on both sides
+    for alias in (source_alias, target_alias):
+        admin = brokers[alias]["rmq_admin"]
+        status = admin.get_alarm_status()
+        ok = status == 200
+        checks.append(
+            {
+                "check": f"'{alias}' no alarms",
+                "status": "PASS" if ok else "FAIL",
+            }
+        )
+        if not ok:
+            go = False
+
+    # Compare topology
+    source_admin = brokers[source_alias]["rmq_admin"]
+    target_admin = brokers[target_alias]["rmq_admin"]
+    source_defs = source_admin.get_broker_definition()
+    target_defs = target_admin.get_broker_definition()
+    diff = handle_compare_definitions(source_defs, target_defs)
+    topology_match = "status" in diff and diff["status"] == "identical"
+    checks.append(
+        {
+            "check": "topology match",
+            "status": "PASS" if topology_match else "WARN",
+            "details": diff if not topology_match else None,
+        }
+    )
+
+    return {"go": go, "checks": checks}

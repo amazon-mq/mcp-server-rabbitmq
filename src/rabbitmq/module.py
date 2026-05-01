@@ -21,7 +21,9 @@ from mcp.server.fastmcp import FastMCP
 from .admin import RabbitMQAdmin
 from .connection import RabbitMQConnection, validate_rabbitmq_name
 from .handlers import (
+    handle_check_migration_readiness,
     handle_close_connection,
+    handle_compare_definitions,
     handle_create_binding,
     handle_create_exchange,
     handle_create_policy,
@@ -33,6 +35,7 @@ from .handlers import (
     handle_delete_queue,
     handle_delete_vhost,
     handle_enqueue,
+    handle_export_definitions,
     handle_fanout,
     handle_get_bindings,
     handle_get_cluster_nodes,
@@ -44,6 +47,7 @@ from .handlers import (
     handle_get_permissions,
     handle_get_policy,
     handle_get_queue_info,
+    handle_import_definitions,
     handle_is_broker_in_alarm,
     handle_is_node_in_quorum_critical,
     handle_list_channels,
@@ -58,6 +62,7 @@ from .handlers import (
     handle_publish_message,
     handle_purge_queue,
     handle_set_permissions,
+    handle_setup_federation,
     handle_shovel,
     handle_update_definition,
 )
@@ -316,6 +321,23 @@ class RabbitMQModule:
             """Get permissions for a user in a virtual host."""
             return handle_get_permissions(self._get_admin(), vhost, user)
 
+        @self.mcp.tool()
+        def rabbitmq_broker_compare_definitions(source_alias: str, target_alias: str) -> dict:
+            """Compare definitions between two connected brokers. Returns missing/extra items per section (queues, exchanges, bindings, policies, vhosts)."""
+            for alias in (source_alias, target_alias):
+                if alias not in self.brokers:
+                    raise ValueError(f"Unknown alias '{alias}'")
+            defs_a = self.brokers[source_alias]["rmq_admin"].get_broker_definition()
+            defs_b = self.brokers[target_alias]["rmq_admin"].get_broker_definition()
+            return handle_compare_definitions(defs_a, defs_b)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_check_migration_readiness(
+            source_alias: str, target_alias: str
+        ) -> dict:
+            """Pre-flight check for blue-green migration. Verifies both brokers connected, no alarms, and topology match."""
+            return handle_check_migration_readiness(self.brokers, source_alias, target_alias)
+
     def __register_mutative_tools(self):
         @self.mcp.tool()
         def rabbitmq_broker_delete_queue(queue: str, vhost: str = "/") -> str:
@@ -485,3 +507,53 @@ class RabbitMQModule:
             """
             handle_set_permissions(self._get_admin(), vhost, user, configure, write, read)
             return f"Permissions set for {user} in {vhost}"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_export_definitions(
+            transforms: list[str] | None = None,
+        ) -> dict:
+            """Export definitions from the active broker with optional transformations.
+
+            transforms: list of transformation names to apply. Available:
+                - strip_cmq_keys: remove classic mirrored queue HA keys from policies
+                - drop_empty_policies: remove policies with empty definitions
+                - convert_classic_to_quorum: change classic queues to quorum type
+                - obfuscate_credentials: replace usernames/passwords with dummy values
+                - exclude_users: remove users section
+                - exclude_permissions: remove permissions sections
+            """
+            return handle_export_definitions(self._get_admin(), transforms)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_import_definitions(definitions: dict) -> str:
+            """Import definitions to the active broker. Merges with existing definitions (RabbitMQ default behavior)."""
+            handle_import_definitions(self._get_admin(), definitions)
+            return "Definitions imported successfully"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_migrate_definitions(
+            source_alias: str,
+            target_alias: str,
+            transforms: list[str] | None = None,
+        ) -> str:
+            """Export definitions from source broker, apply transformations, and import to target broker. The core blue-green migration primitive."""
+            for alias in (source_alias, target_alias):
+                if alias not in self.brokers:
+                    raise ValueError(f"Unknown alias '{alias}'")
+            source_admin = self.brokers[source_alias]["rmq_admin"]
+            target_admin = self.brokers[target_alias]["rmq_admin"]
+            defs = handle_export_definitions(source_admin, transforms)
+            handle_import_definitions(target_admin, defs)
+            return f"Definitions migrated from '{source_alias}' to '{target_alias}'"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_setup_federation(
+            upstream_name: str,
+            upstream_uri: str,
+            vhost: str = "/",
+            policy_pattern: str = ".*",
+        ) -> dict:
+            """Set up federation upstream and policy on the active broker. Creates a bridge for message draining from the upstream broker. Checks that the federation plugin is enabled first."""
+            return handle_setup_federation(
+                self._get_admin(), upstream_name, upstream_uri, vhost, policy_pattern
+            )
