@@ -33,8 +33,8 @@ def module(mock_mcp):
 
 class TestRabbitMQModule:
     def test_init(self, module):
-        assert module.rmq is None
-        assert module.rmq_admin is None
+        assert module.brokers == {}
+        assert module.active_alias is None
 
     def test_register_tools_read_only(self, module):
         module.register_rabbitmq_management_tools(allow_mutative_tools=False)
@@ -53,9 +53,13 @@ class TestRabbitMQModule:
         mock_conn_class.return_value = mock_conn
 
         module.register_rabbitmq_management_tools()
-        # Simulate calling the connection tool
-        module.rmq = mock_conn
-        module.rmq_admin = mock_admin
+        # Simulate registering a broker
+        module.brokers["test"] = {
+            "rmq": mock_conn,
+            "rmq_admin": mock_admin,
+            "hostname": "localhost",
+        }
+        module.active_alias = "test"
 
-        assert module.rmq is not None
-        assert module.rmq_admin is not None
+        assert module._get_admin() is mock_admin
+        assert module._get_rmq() is mock_conn
