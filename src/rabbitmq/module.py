@@ -23,10 +23,14 @@ from .connection import RabbitMQConnection, validate_rabbitmq_name
 from .handlers import (
     handle_delete_exchange,
     handle_delete_queue,
+    handle_enqueue,
+    handle_fanout,
+    handle_get_bindings,
     handle_get_cluster_nodes,
     handle_get_definition,
     handle_get_exchange_info,
     handle_get_guidelines,
+    handle_get_node_information,
     handle_get_queue_info,
     handle_is_broker_in_alarm,
     handle_is_node_in_quorum_critical,
@@ -74,23 +78,21 @@ class RabbitMQModule:
             username: The username of user
             password: The password of user
             """
-            try:
-                self.rmq = RabbitMQConnection(
-                    hostname=broker_hostname,
-                    username=username,
-                    password=password,
-                    port=port,
-                    use_tls=use_tls,
-                )
-                self.rmq_admin = RabbitMQAdmin(
-                    hostname=broker_hostname,
-                    username=username,
-                    password=password,
-                )
-                self.rmq_admin.test_connection()
-                return "successfully connected"
-            except Exception as e:
-                raise e
+            self.rmq = RabbitMQConnection(
+                hostname=broker_hostname,
+                username=username,
+                password=password,
+                port=port,
+                use_tls=use_tls,
+            )
+            self.rmq_admin = RabbitMQAdmin(
+                hostname=broker_hostname,
+                username=username,
+                password=password,
+                use_tls=use_tls,
+            )
+            self.rmq_admin.test_connection()
+            return "successfully connected"
 
         @self.mcp.tool()
         def rabbitmq_broker_initialize_connection_with_oauth(
@@ -102,226 +104,198 @@ class RabbitMQModule:
             broker_hostname: The hostname of the broker. For example, b-a9565a64-da39-4afc-9239-c43a9376b5ba.mq.us-east-1.on.aws, b-9560b8e1-3d33-4d91-9488-a3dc4a61dfe7.mq.us-east-1.amazonaws.com
             oauth_token: A valid access token
             """
-            try:
-                self.rmq = RabbitMQConnection(
-                    hostname=broker_hostname,
-                    username="ignored",
-                    password=oauth_token,
-                )
-                self.rmq_admin = RabbitMQAdmin(
-                    hostname=broker_hostname,
-                    username="ignored",
-                    password=oauth_token,
-                )
-                self.rmq_admin.test_connection()
-                return "successfully connected"
-            except Exception as e:
-                raise e
+            self.rmq = RabbitMQConnection(
+                hostname=broker_hostname,
+                username="",
+                password=oauth_token,
+            )
+            self.rmq_admin = RabbitMQAdmin(
+                hostname=broker_hostname,
+                username="",
+                password=oauth_token,
+            )
+            self.rmq_admin.test_connection()
+            return "successfully connected"
 
         @self.mcp.tool()
         def rabbitmq_broker_get_guideline(guideline_name: str) -> str:
             """Get the general best practices for deploying RabbitMQ on Amazon MQ.
 
             - guideline_name: It can take the following value:
-                - rabbimq_broker_sizing_guide : this guide tells the customer what instance size to pick for production workload
+                - rabbitmq_broker_sizing_guide: this guide tells the customer what instance size to pick for production workload
                 - rabbitmq_broker_setup_best_practices_guide: this guide tells the customer what are the best practices in setting up the RabbitMQ broker
                 - rabbitmq_quorum_queue_migration_guide: this guide tells the customer how to migrate from classic mirror queue to quorum queue
-                - rabbitmq_client_performance_optimization_guide: this guide tells the customer how to optimize their application to get peformance gain of using RabbitMQ
-                - rabbitmq_check_broker_follow_best_practice_instructions: this contains instruction to check if a given RabbitMQ broker is following best practices
+                - rabbitmq_client_performance_optimization_guide: this guide tells the customer how to optimize their application to get performance gain of using RabbitMQ
+                - rabbitmq_production_deployment_guidelines: this guide covers production deployment requirements including hardware, storage, security, and networking
             """
-            try:
-                result = handle_get_guidelines(guideline_name)
-                return str(result)
-            except Exception as e:
-                raise e
+            result = handle_get_guidelines(guideline_name)
+            return str(result)
 
     def __register_read_only_tools(self):
         @self.mcp.tool()
         def rabbitmq_broker_list_queues() -> list[Any]:
             """List all the queues in the broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_queues(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_queues(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_list_exchanges() -> list[Any]:
             """List all the exchanges in the broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_exchanges(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_exchanges(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_list_vhosts() -> list[Any]:
             """List all the virtual hosts (vhosts) in the broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_vhosts(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_vhosts(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_get_queue_info(queue: str, vhost: str = "/") -> dict:
             """Get detailed information about a specific queue."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                validate_rabbitmq_name(queue, "Queue name")
-                return handle_get_queue_info(self.rmq_admin, queue, vhost)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            validate_rabbitmq_name(queue, "Queue name")
+            return handle_get_queue_info(self.rmq_admin, queue, vhost)
 
         @self.mcp.tool()
         def rabbitmq_broker_get_exchange_info(exchange: str, vhost: str = "/") -> dict:
             """Get detailed information about a specific exchange."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                validate_rabbitmq_name(exchange, "Exchange name")
-                return handle_get_exchange_info(self.rmq_admin, exchange, vhost)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            validate_rabbitmq_name(exchange, "Exchange name")
+            return handle_get_exchange_info(self.rmq_admin, exchange, vhost)
 
         @self.mcp.tool()
         def rabbitmq_broker_list_shovels() -> list[Any]:
             """Get detailed information about shovels in the RabbitMQ broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_shovels(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_shovels(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_get_shovel_info(name: str, vhost: str = "/") -> dict:
             """Get detailed information about specific shovel by name that is in a selected virtual host (vhost) in the RabbitMQ broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_shovel(self.rmq_admin, name, vhost)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_shovel(self.rmq_admin, name, vhost)
 
         @self.mcp.tool()
         def rabbitmq_broker_get_cluster_nodes_info() -> list[Any]:
             """Get the list of nodes and their info in the cluster."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_get_cluster_nodes(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_get_cluster_nodes(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_list_connections() -> list[Any]:
             """List all connections on the RabbitMQ broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_connections(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_connections(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_list_consumers() -> list[Any]:
             """List all consumers on the RabbitMQ broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_consumers(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_consumers(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_list_users() -> list[Any]:
             """List all users on the RabbitMQ broker."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_list_users(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_list_users(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_is_in_alarm() -> bool:
             """Check if the RabbitMQ broker is in alarm."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_is_broker_in_alarm(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_is_broker_in_alarm(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_is_quorum_critical() -> bool:
             """Check if there are quorum queues with minimum online quorum."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_is_node_in_quorum_critical(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_is_node_in_quorum_critical(self.rmq_admin)
 
         @self.mcp.tool()
         def rabbitmq_broker_get_broker_definition() -> dict:
             """Get the RabbitMQ definitions: exchanges, queues, bindings, users, virtual hosts, permissions, topic permissions, and parameters. Everything apart from messages."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                return handle_get_definition(self.rmq_admin)
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_get_definition(self.rmq_admin)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_get_bindings(
+            queue: str | None = None, exchange: str | None = None, vhost: str = "/"
+        ) -> list[dict]:
+            """Get bindings, optionally filtered by queue or exchange. If neither is specified, returns all bindings in the vhost."""
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_get_bindings(self.rmq_admin, queue=queue, exchange=exchange, vhost=vhost)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_get_node_information(node_name: str) -> dict:
+            """Get detailed information about a specific node in the cluster including memory, disk, uptime, and runtime details."""
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_get_node_information(self.rmq_admin, node_name)
 
     def __register_mutative_tools(self):
         @self.mcp.tool()
         def rabbitmq_broker_delete_queue(queue: str, vhost: str = "/") -> str:
             """Delete a specific queue."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                validate_rabbitmq_name(queue, "Queue name")
-                handle_delete_queue(self.rmq_admin, queue, vhost)
-                return f"Queue {queue} successfully deleted"
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            validate_rabbitmq_name(queue, "Queue name")
+            handle_delete_queue(self.rmq_admin, queue, vhost)
+            return f"Queue {queue} successfully deleted"
 
         @self.mcp.tool()
         def rabbitmq_broker_purge_queue(queue: str, vhost: str = "/") -> str:
             """Remove all messages from a specific queue."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                validate_rabbitmq_name(queue, "Queue name")
-                handle_purge_queue(self.rmq_admin, queue, vhost)
-                return f"Queue {queue} successfully purged"
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            validate_rabbitmq_name(queue, "Queue name")
+            handle_purge_queue(self.rmq_admin, queue, vhost)
+            return f"Queue {queue} successfully purged"
 
         @self.mcp.tool()
         def rabbitmq_broker_delete_exchange(exchange: str, vhost: str = "/") -> str:
             """Delete a specific exchange."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                validate_rabbitmq_name(exchange, "Exchange name")
-                handle_delete_exchange(self.rmq_admin, exchange, vhost)
-                return f"Exchange {exchange} successfully deleted"
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            validate_rabbitmq_name(exchange, "Exchange name")
+            handle_delete_exchange(self.rmq_admin, exchange, vhost)
+            return f"Exchange {exchange} successfully deleted"
 
         @self.mcp.tool()
         def rabbitmq_broker_update_definition(server_definition: dict) -> str:
             """Update The server definitions: exchanges, queues, bindings, users, virtual hosts, permissions, topic permissions, and parameters. Everything apart from messages."""
-            try:
-                if self.rmq_admin is None:
-                    raise AssertionError("RabbitMQ admin endpoints not connected.")
-                handle_update_definition(self.rmq_admin, server_definition)
-                return "Updated successfully"
-            except Exception as e:
-                raise e
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            handle_update_definition(self.rmq_admin, server_definition)
+            return "Updated successfully"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_enqueue(queue: str, message: str) -> str:
+            """Publish a message to a specific queue via AMQP. The queue will be declared if it does not exist."""
+            if self.rmq is None:
+                raise AssertionError("RabbitMQ AMQP connection not established.")
+            handle_enqueue(self.rmq, queue, message)
+            return f"Message published to queue {queue}"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_fanout(exchange: str, message: str) -> str:
+            """Publish a message to a fanout exchange via AMQP. The exchange will be declared if it does not exist."""
+            if self.rmq is None:
+                raise AssertionError("RabbitMQ AMQP connection not established.")
+            handle_fanout(self.rmq, exchange, message)
+            return f"Message published to fanout exchange {exchange}"
