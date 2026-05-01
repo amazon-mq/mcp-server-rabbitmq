@@ -84,6 +84,7 @@ class RabbitMQModule:
         self.mcp = mcp
         self.brokers: dict[str, dict] = {}
         self.active_alias: str | None = None
+        self.default_management_port: int | None = None
 
     def _get_admin(self) -> RabbitMQAdmin:
         """Return the active broker's admin client."""
@@ -134,6 +135,7 @@ class RabbitMQModule:
                 username=username,
                 password=password,
                 use_tls=use_tls,
+                port=self.default_management_port,
             )
             rmq_admin.test_connection()
             self.brokers[alias] = {
@@ -166,6 +168,7 @@ class RabbitMQModule:
                 hostname=broker_hostname,
                 username="",
                 password=oauth_token,
+                port=self.default_management_port,
             )
             rmq_admin.test_connection()
             self.brokers[alias] = {

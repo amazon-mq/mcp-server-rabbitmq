@@ -14,7 +14,7 @@ from .rabbitmq.module import RabbitMQModule
 
 
 class RabbitMQMCPServer:
-    def __init__(self, allow_mutative_tools: bool):
+    def __init__(self, allow_mutative_tools: bool, management_port: int | None = None):
         # Setup logger
         logger.remove()
         logger.add(sys.stderr, level=os.getenv("FASTMCP_LOG_LEVEL", "WARNING"))
@@ -27,6 +27,7 @@ class RabbitMQMCPServer:
         )
 
         rmq_module = RabbitMQModule(self.mcp)
+        rmq_module.default_management_port = management_port
         rmq_module.register_rabbitmq_management_tools(allow_mutative_tools)
 
     def run(self, args):
@@ -68,6 +69,12 @@ def main():
         "--server-port", type=int, default=8888, help="Port to run the MCP server on"
     )
     parser.add_argument(
+        "--management-port",
+        type=int,
+        default=None,
+        help="Default RabbitMQ Management API port (default: 443 for TLS, 15672 for non-TLS)",
+    )
+    parser.add_argument(
         "--http-auth-jwks-uri",
         type=str,
         default=None,
@@ -95,7 +102,7 @@ def main():
     args = parser.parse_args()
 
     # Create server with connection parameters from args
-    server = RabbitMQMCPServer(args.allow_mutative_tools)
+    server = RabbitMQMCPServer(args.allow_mutative_tools, args.management_port)
 
     # Run the server with remaining args
     server.run(args)
