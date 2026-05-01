@@ -35,7 +35,7 @@ def mock_response():
 class TestRabbitMQAdmin:
     def test_init(self, admin):
         assert admin.protocol == "https"
-        assert admin.base_url == "https://localhost/api"
+        assert admin.base_url == "https://localhost:443/api"
 
     @patch("src.rabbitmq.admin.requests.request")
     def test_list_queues(self, mock_request, admin, mock_response):
