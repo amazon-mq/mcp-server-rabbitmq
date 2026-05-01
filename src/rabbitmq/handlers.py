@@ -588,3 +588,42 @@ def handle_check_migration_readiness(
     )
 
     return {"go": go, "checks": checks}
+
+
+################################################
+######   Phase 5: Health & Ops handlers   ######
+################################################
+
+
+def handle_check_local_alarms(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    return rabbitmq_admin.check_local_alarms()
+
+
+def handle_check_certificate_expiration(
+    rabbitmq_admin: RabbitMQAdmin, within: int = 30, unit: str = "days"
+) -> dict:
+    return rabbitmq_admin.check_certificate_expiration(within, unit)
+
+
+def handle_check_protocol_listener(rabbitmq_admin: RabbitMQAdmin, protocol: str) -> dict:
+    return rabbitmq_admin.check_protocol_listener(protocol)
+
+
+def handle_check_virtual_hosts(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    return rabbitmq_admin.check_virtual_hosts()
+
+
+def handle_list_feature_flags(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
+    return rabbitmq_admin.list_feature_flags()
+
+
+def handle_list_deprecated_features(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
+    return rabbitmq_admin.list_deprecated_features_in_use()
+
+
+def handle_rebalance_queues(rabbitmq_admin: RabbitMQAdmin) -> None:
+    rabbitmq_admin.rebalance_queues()
+
+
+def handle_whoami(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    return rabbitmq_admin.whoami()

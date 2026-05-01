@@ -21,7 +21,11 @@ from mcp.server.fastmcp import FastMCP
 from .admin import RabbitMQAdmin
 from .connection import RabbitMQConnection, validate_rabbitmq_name
 from .handlers import (
+    handle_check_certificate_expiration,
+    handle_check_local_alarms,
     handle_check_migration_readiness,
+    handle_check_protocol_listener,
+    handle_check_virtual_hosts,
     handle_close_connection,
     handle_compare_definitions,
     handle_create_binding,
@@ -53,7 +57,9 @@ from .handlers import (
     handle_list_channels,
     handle_list_connections,
     handle_list_consumers,
+    handle_list_deprecated_features,
     handle_list_exchanges,
+    handle_list_feature_flags,
     handle_list_policies,
     handle_list_queues,
     handle_list_shovels,
@@ -61,10 +67,12 @@ from .handlers import (
     handle_list_vhosts,
     handle_publish_message,
     handle_purge_queue,
+    handle_rebalance_queues,
     handle_set_permissions,
     handle_setup_federation,
     handle_shovel,
     handle_update_definition,
+    handle_whoami,
 )
 
 
@@ -338,6 +346,49 @@ class RabbitMQModule:
             """Pre-flight check for blue-green migration. Verifies both brokers connected, no alarms, and topology match."""
             return handle_check_migration_readiness(self.brokers, source_alias, target_alias)
 
+        @self.mcp.tool()
+        def rabbitmq_broker_check_local_alarms() -> dict:
+            """Check for local alarms on the active broker."""
+            return handle_check_local_alarms(self._get_admin())
+
+        @self.mcp.tool()
+        def rabbitmq_broker_check_certificate_expiration(
+            within: int = 30, unit: str = "days"
+        ) -> dict:
+            """Check if any TLS certificates expire within the given timeframe.
+
+            unit: days, weeks, or months
+            """
+            return handle_check_certificate_expiration(self._get_admin(), within, unit)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_check_protocol_listener(protocol: str) -> dict:
+            """Check if a protocol listener is active.
+
+            protocol: amqp091, amqp10, mqtt, stomp, web-mqtt, web-stomp, http, https
+            """
+            return handle_check_protocol_listener(self._get_admin(), protocol)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_check_virtual_hosts() -> dict:
+            """Check health of all virtual hosts on the active broker."""
+            return handle_check_virtual_hosts(self._get_admin())
+
+        @self.mcp.tool()
+        def rabbitmq_broker_list_feature_flags() -> list[dict]:
+            """List all feature flags and their status."""
+            return handle_list_feature_flags(self._get_admin())
+
+        @self.mcp.tool()
+        def rabbitmq_broker_list_deprecated_features() -> list[dict]:
+            """List deprecated features currently in use. Useful for upgrade planning."""
+            return handle_list_deprecated_features(self._get_admin())
+
+        @self.mcp.tool()
+        def rabbitmq_broker_whoami() -> dict:
+            """Get the current authenticated user on the active broker."""
+            return handle_whoami(self._get_admin())
+
     def __register_mutative_tools(self):
         @self.mcp.tool()
         def rabbitmq_broker_delete_queue(queue: str, vhost: str = "/") -> str:
@@ -557,3 +608,9 @@ class RabbitMQModule:
             return handle_setup_federation(
                 self._get_admin(), upstream_name, upstream_uri, vhost, policy_pattern
             )
+
+        @self.mcp.tool()
+        def rabbitmq_broker_rebalance_queues() -> str:
+            """Rebalance queue leaders across cluster nodes. Useful after adding/removing nodes."""
+            handle_rebalance_queues(self._get_admin())
+            return "Queue rebalance initiated"
