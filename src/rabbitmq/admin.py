@@ -357,3 +357,46 @@ class RabbitMQAdmin:
         """Delete a federation upstream."""
         vhost_encoded = quote(vhost, safe="")
         self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name}")
+
+    # --- Phase 5: Health & Ops ---
+
+    def check_local_alarms(self) -> dict:
+        """Check for local alarms."""
+        response = self._make_request("GET", "health/checks/local-alarms")
+        return {"status": response.status_code, "ok": response.status_code == 200}
+
+    def check_certificate_expiration(self, within: int = 30, unit: str = "days") -> dict:
+        """Check if any certificates expire within the given timeframe."""
+        response = self._make_request(
+            "GET", f"health/checks/certificate-expiration/{within}/{unit}"
+        )
+        return {"status": response.status_code, "ok": response.status_code == 200}
+
+    def check_protocol_listener(self, protocol: str) -> dict:
+        """Check if a protocol listener is active."""
+        response = self._make_request("GET", f"health/checks/protocol-listener/{protocol}")
+        return {"status": response.status_code, "ok": response.status_code == 200}
+
+    def check_virtual_hosts(self) -> dict:
+        """Check health of all virtual hosts."""
+        response = self._make_request("GET", "health/checks/virtual-hosts")
+        return {"status": response.status_code, "ok": response.status_code == 200}
+
+    def list_feature_flags(self) -> list[dict]:
+        """List all feature flags."""
+        response = self._make_request("GET", "feature-flags")
+        return response.json()
+
+    def list_deprecated_features_in_use(self) -> list[dict]:
+        """List deprecated features currently in use."""
+        response = self._make_request("GET", "deprecated-features/used")
+        return response.json()
+
+    def rebalance_queues(self) -> None:
+        """Rebalance queue leaders across cluster nodes."""
+        self._make_request("POST", "rebalance/queues", data={})
+
+    def whoami(self) -> dict:
+        """Get the current authenticated user."""
+        response = self._make_request("GET", "whoami")
+        return response.json()
