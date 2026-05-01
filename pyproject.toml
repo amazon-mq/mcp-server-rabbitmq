@@ -67,10 +67,13 @@ indent-style = "space"
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src/tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+markers = [
+    "integration: requires a running RabbitMQ broker (docker compose up -d)",
+]
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
