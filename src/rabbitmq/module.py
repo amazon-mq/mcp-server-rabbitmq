@@ -23,10 +23,14 @@ from .connection import RabbitMQConnection, validate_rabbitmq_name
 from .handlers import (
     handle_delete_exchange,
     handle_delete_queue,
+    handle_enqueue,
+    handle_fanout,
+    handle_get_bindings,
     handle_get_cluster_nodes,
     handle_get_definition,
     handle_get_exchange_info,
     handle_get_guidelines,
+    handle_get_node_information,
     handle_get_queue_info,
     handle_is_broker_in_alarm,
     handle_is_node_in_quorum_critical,
@@ -228,6 +232,22 @@ class RabbitMQModule:
                 raise AssertionError("RabbitMQ admin endpoints not connected.")
             return handle_get_definition(self.rmq_admin)
 
+        @self.mcp.tool()
+        def rabbitmq_broker_get_bindings(
+            queue: str | None = None, exchange: str | None = None, vhost: str = "/"
+        ) -> list[dict]:
+            """Get bindings, optionally filtered by queue or exchange. If neither is specified, returns all bindings in the vhost."""
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_get_bindings(self.rmq_admin, queue=queue, exchange=exchange, vhost=vhost)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_get_node_information(node_name: str) -> dict:
+            """Get detailed information about a specific node in the cluster including memory, disk, uptime, and runtime details."""
+            if self.rmq_admin is None:
+                raise AssertionError("RabbitMQ admin endpoints not connected.")
+            return handle_get_node_information(self.rmq_admin, node_name)
+
     def __register_mutative_tools(self):
         @self.mcp.tool()
         def rabbitmq_broker_delete_queue(queue: str, vhost: str = "/") -> str:
@@ -263,3 +283,19 @@ class RabbitMQModule:
                 raise AssertionError("RabbitMQ admin endpoints not connected.")
             handle_update_definition(self.rmq_admin, server_definition)
             return "Updated successfully"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_enqueue(queue: str, message: str) -> str:
+            """Publish a message to a specific queue via AMQP. The queue will be declared if it does not exist."""
+            if self.rmq is None:
+                raise AssertionError("RabbitMQ AMQP connection not established.")
+            handle_enqueue(self.rmq, queue, message)
+            return f"Message published to queue {queue}"
+
+        @self.mcp.tool()
+        def rabbitmq_broker_fanout(exchange: str, message: str) -> str:
+            """Publish a message to a fanout exchange via AMQP. The exchange will be declared if it does not exist."""
+            if self.rmq is None:
+                raise AssertionError("RabbitMQ AMQP connection not established.")
+            handle_fanout(self.rmq, exchange, message)
+            return f"Message published to fanout exchange {exchange}"
