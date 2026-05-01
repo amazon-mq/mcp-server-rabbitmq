@@ -29,22 +29,30 @@ from .connection import RabbitMQConnection
 def handle_get_guidelines(guideline_name: str):
     """Get RabbitMQ operational guidelines."""
     script_dir = Path(__file__).parent
-    guidelines = {
-        "rabbitmq_broker_sizing_guide": "rabbitmq_broker_sizing_guide.md",
-        "rabbitmq_broker_setup_best_practices_guide": "rabbitmq_setup_best_practice.md",
-        "rabbitmq_quorum_queue_migration_guide": "rabbitmq_quorum_queue_migration_guide.md",
-        "rabbitmq_client_performance_optimization_guide": (
-            "rabbitmq_performance_optimization_best_practice.md"
-        ),
-        "rabbitmq_production_deployment_guidelines": (
-            "rabbitmq_production_deployment_guidelines.md"
-        ),
-    }
-    filename = guidelines.get(guideline_name)
-    if not filename:
-        available = ", ".join(guidelines.keys())
-        raise ValueError(f"'{guideline_name}' doesn't exist. Available: {available}")
-    return (script_dir / "doc" / filename).read_text()
+    content = ""
+    if guideline_name == "rabbimq_broker_sizing_guide":
+        content = (script_dir / "doc" / "rabbitmq_broker_sizing_guide.md").read_text()
+
+    elif guideline_name == "rabbitmq_broker_setup_best_practices_guide":
+        content = (script_dir / "doc" / "rabbitmq_setup_best_practice.md").read_text()
+
+    elif guideline_name == "rabbitmq_quorum_queue_migration_guide":
+        content = (script_dir / "doc" / "rabbitmq_quorum_queue_migration_guide.md").read_text()
+
+    elif guideline_name == "rabbitmq_client_performance_optimization_guide":
+        content = (
+            script_dir / "doc" / "rabbitmq_performance_optimization_best_practice.md"
+        ).read_text()
+
+    elif guideline_name == "rabbitmq_check_broker_follow_best_practice_instructions":
+        content = (
+            script_dir / "doc" / "rabbitmq_check_broker_follow_best_practice_instructions.md"
+        ).read_text()
+
+    else:
+        raise ValueError(f"{guideline_name} doesn't exist")
+
+    return content
 
 
 ################################################

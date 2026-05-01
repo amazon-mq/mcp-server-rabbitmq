@@ -164,7 +164,7 @@ class TestHandlers:
         assert result[0]["mem_used_in_percentage"] == 50.0
 
     def test_handle_get_guidelines_valid(self):
-        result = handle_get_guidelines("rabbitmq_broker_sizing_guide")
+        result = handle_get_guidelines("rabbimq_broker_sizing_guide")
         assert isinstance(result, str)
         assert len(result) > 0
 

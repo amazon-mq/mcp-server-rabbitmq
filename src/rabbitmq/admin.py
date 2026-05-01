@@ -27,19 +27,11 @@ from .connection import validate_rabbitmq_name
 class RabbitMQAdmin:
     """RabbitMQAdmin class provides API to call RabbitMQ APIs."""
 
-    def __init__(
-        self,
-        hostname: str,
-        username: str,
-        password: str,
-        use_tls: bool = True,
-        port: int | None = None,
-    ):
+    def __init__(self, hostname: str, username: str, password: str, use_tls: bool = True):
         """Initialize RabbitMQ admin client."""
+        host = hostname
         self.protocol = "https" if use_tls else "http"
-        if port is None:
-            port = 443 if use_tls else 15672
-        self.base_url = f"{self.protocol}://{hostname}:{port}/api"
+        self.base_url = f"{self.protocol}://{host}/api"
         self.auth = base64.b64encode(f"{username}:{password}".encode()).decode()
         self.headers = {"Authorization": f"Basic {self.auth}", "Content-Type": "application/json"}
 
