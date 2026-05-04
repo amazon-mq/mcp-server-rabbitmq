@@ -194,3 +194,144 @@ class RabbitMQAdmin:
     def update_broker_definition(self, definition: dict) -> None:
         """Upload broker definitions (exchanges, queues, bindings, policies)."""
         self._make_request("POST", "definitions", data=definition)
+
+    def create_queue(self, queue: str, vhost: str = "/", **kwargs) -> None:
+        """Create a queue."""
+        validate_rabbitmq_name(queue, "Queue name")
+        vhost_encoded = quote(vhost, safe="")
+        self._make_request("PUT", f"queues/{vhost_encoded}/{queue}", data=kwargs or {})
+
+    def create_exchange(
+        self, exchange: str, exchange_type: str = "direct", vhost: str = "/", **kwargs
+    ) -> None:
+        """Create an exchange."""
+        validate_rabbitmq_name(exchange, "Exchange name")
+        vhost_encoded = quote(vhost, safe="")
+        data = {"type": exchange_type, **kwargs}
+        self._make_request("PUT", f"exchanges/{vhost_encoded}/{exchange}", data=data)
+
+    def create_binding(
+        self,
+        vhost: str,
+        exchange: str,
+        queue: str,
+        routing_key: str = "",
+        arguments: dict | None = None,
+    ) -> None:
+        """Create a binding from exchange to queue."""
+        vhost_encoded = quote(vhost, safe="")
+        data: dict = {"routing_key": routing_key}
+        if arguments:
+            data["arguments"] = arguments
+        self._make_request("POST", f"bindings/{vhost_encoded}/e/{exchange}/q/{queue}", data=data)
+
+    def delete_binding(self, vhost: str, exchange: str, queue: str, props_key: str) -> None:
+        """Delete a binding."""
+        vhost_encoded = quote(vhost, safe="")
+        self._make_request(
+            "DELETE", f"bindings/{vhost_encoded}/e/{exchange}/q/{queue}/{props_key}"
+        )
+
+    def list_policies(self, vhost: str = "/") -> list[dict]:
+        """List all policies in a vhost."""
+        vhost_encoded = quote(vhost, safe="")
+        response = self._make_request("GET", f"policies/{vhost_encoded}")
+        return response.json()
+
+    def get_policy(self, name: str, vhost: str = "/") -> dict:
+        """Get a specific policy."""
+        vhost_encoded = quote(vhost, safe="")
+        response = self._make_request("GET", f"policies/{vhost_encoded}/{name}")
+        return response.json()
+
+    def create_policy(
+        self,
+        name: str,
+        pattern: str,
+        definition: dict,
+        vhost: str = "/",
+        priority: int = 0,
+        apply_to: str = "all",
+    ) -> None:
+        """Create or update a policy."""
+        vhost_encoded = quote(vhost, safe="")
+        data = {
+            "pattern": pattern,
+            "definition": definition,
+            "priority": priority,
+            "apply-to": apply_to,
+        }
+        self._make_request("PUT", f"policies/{vhost_encoded}/{name}", data=data)
+
+    def delete_policy(self, name: str, vhost: str = "/") -> None:
+        """Delete a policy."""
+        vhost_encoded = quote(vhost, safe="")
+        self._make_request("DELETE", f"policies/{vhost_encoded}/{name}")
+
+    def publish_message(
+        self,
+        exchange: str,
+        routing_key: str,
+        payload: str,
+        vhost: str = "/",
+        properties: dict | None = None,
+    ) -> dict:
+        """Publish a message via the HTTP API."""
+        vhost_encoded = quote(vhost, safe="")
+        data = {
+            "routing_key": routing_key,
+            "payload": payload,
+            "payload_encoding": "string",
+            "properties": properties or {},
+        }
+        response = self._make_request(
+            "POST", f"exchanges/{vhost_encoded}/{exchange}/publish", data=data
+        )
+        return response.json()
+
+    def get_messages(
+        self,
+        queue: str,
+        vhost: str = "/",
+        count: int = 1,
+        ackmode: str = "ack_requeue_true",
+        encoding: str = "auto",
+    ) -> list[dict]:
+        """Get messages from a queue (peek)."""
+        vhost_encoded = quote(vhost, safe="")
+        data = {"count": count, "ackmode": ackmode, "encoding": encoding}
+        response = self._make_request("POST", f"queues/{vhost_encoded}/{queue}/get", data=data)
+        return response.json()
+
+    def list_channels(self) -> list[dict]:
+        """List all open channels."""
+        response = self._make_request("GET", "channels")
+        return response.json()
+
+    def close_connection(self, name: str) -> None:
+        """Close a connection."""
+        self._make_request("DELETE", f"connections/{name}")
+
+    def create_vhost(self, name: str) -> None:
+        """Create a virtual host."""
+        name_encoded = quote(name, safe="")
+        self._make_request("PUT", f"vhosts/{name_encoded}", data={})
+
+    def delete_vhost(self, name: str) -> None:
+        """Delete a virtual host."""
+        name_encoded = quote(name, safe="")
+        self._make_request("DELETE", f"vhosts/{name_encoded}")
+
+    def get_permissions(self, vhost: str, user: str) -> dict:
+        """Get permissions for a user in a vhost."""
+        vhost_encoded = quote(vhost, safe="")
+        response = self._make_request("GET", f"permissions/{vhost_encoded}/{user}")
+        return response.json()
+
+    def set_permissions(
+        self, vhost: str, user: str, configure: str = ".*", write: str = ".*", read: str = ".*"
+    ) -> None:
+        """Set permissions for a user in a vhost."""
+        vhost_encoded = quote(vhost, safe="")
+        data = {"configure": configure, "write": write, "read": read}
+        self._make_request("PUT", f"permissions/{vhost_encoded}/{user}", data=data)

@@ -267,3 +267,184 @@ def handle_get_bindings(
 def handle_get_node_information(rabbitmq_admin: RabbitMQAdmin, node_name: str) -> dict:
     """Get detailed information about a specific node."""
     return rabbitmq_admin.get_node_information(node_name=node_name)
+
+
+################################################
+######       Core CRUD handlers           ######
+################################################
+
+
+## Queues (create)
+
+
+def handle_create_queue(
+    rabbitmq_admin: RabbitMQAdmin,
+    queue: str,
+    vhost: str = "/",
+    queue_type: str = "quorum",
+    durable: bool = True,
+    auto_delete: bool = False,
+    arguments: dict | None = None,
+) -> None:
+    """Create a queue."""
+    kwargs: dict = {
+        "durable": durable,
+        "auto_delete": auto_delete,
+        "arguments": {"x-queue-type": queue_type, **(arguments or {})},
+    }
+    rabbitmq_admin.create_queue(queue, vhost, **kwargs)
+
+
+## Exchanges (create)
+
+
+def handle_create_exchange(
+    rabbitmq_admin: RabbitMQAdmin,
+    exchange: str,
+    exchange_type: str = "direct",
+    vhost: str = "/",
+    durable: bool = True,
+    auto_delete: bool = False,
+    arguments: dict | None = None,
+) -> None:
+    """Create an exchange."""
+    rabbitmq_admin.create_exchange(
+        exchange,
+        exchange_type,
+        vhost,
+        durable=durable,
+        auto_delete=auto_delete,
+        arguments=arguments or {},
+    )
+
+
+## Bindings
+
+
+def handle_create_binding(
+    rabbitmq_admin: RabbitMQAdmin,
+    exchange: str,
+    queue: str,
+    vhost: str = "/",
+    routing_key: str = "",
+    arguments: dict | None = None,
+) -> None:
+    """Create a binding from exchange to queue."""
+    rabbitmq_admin.create_binding(vhost, exchange, queue, routing_key, arguments)
+
+
+def handle_delete_binding(
+    rabbitmq_admin: RabbitMQAdmin,
+    exchange: str,
+    queue: str,
+    props_key: str,
+    vhost: str = "/",
+) -> None:
+    """Delete a binding."""
+    rabbitmq_admin.delete_binding(vhost, exchange, queue, props_key)
+
+
+## Policies
+
+
+def handle_list_policies(rabbitmq_admin: RabbitMQAdmin, vhost: str = "/") -> list[dict]:
+    """List all policies in a vhost."""
+    return rabbitmq_admin.list_policies(vhost)
+
+
+def handle_get_policy(rabbitmq_admin: RabbitMQAdmin, name: str, vhost: str = "/") -> dict:
+    """Get a specific policy."""
+    return rabbitmq_admin.get_policy(name, vhost)
+
+
+def handle_create_policy(
+    rabbitmq_admin: RabbitMQAdmin,
+    name: str,
+    pattern: str,
+    definition: dict,
+    vhost: str = "/",
+    priority: int = 0,
+    apply_to: str = "all",
+) -> None:
+    """Create or update a policy."""
+    rabbitmq_admin.create_policy(name, pattern, definition, vhost, priority, apply_to)
+
+
+def handle_delete_policy(rabbitmq_admin: RabbitMQAdmin, name: str, vhost: str = "/") -> None:
+    """Delete a policy."""
+    rabbitmq_admin.delete_policy(name, vhost)
+
+
+## Messages
+
+
+def handle_publish_message(
+    rabbitmq_admin: RabbitMQAdmin,
+    exchange: str,
+    routing_key: str,
+    payload: str,
+    vhost: str = "/",
+    properties: dict | None = None,
+) -> dict:
+    """Publish a message via the HTTP API."""
+    return rabbitmq_admin.publish_message(exchange, routing_key, payload, vhost, properties)
+
+
+def handle_get_messages(
+    rabbitmq_admin: RabbitMQAdmin,
+    queue: str,
+    vhost: str = "/",
+    count: int = 1,
+    ackmode: str = "ack_requeue_true",
+) -> list[dict]:
+    """Get messages from a queue (peek without consuming)."""
+    return rabbitmq_admin.get_messages(queue, vhost, count, ackmode)
+
+
+## Channels
+
+
+def handle_list_channels(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
+    """List all open channels."""
+    return rabbitmq_admin.list_channels()
+
+
+## Connections (close)
+
+
+def handle_close_connection(rabbitmq_admin: RabbitMQAdmin, name: str) -> None:
+    """Close a connection by name."""
+    rabbitmq_admin.close_connection(name)
+
+
+## Vhosts (create/delete)
+
+
+def handle_create_vhost(rabbitmq_admin: RabbitMQAdmin, name: str) -> None:
+    """Create a virtual host."""
+    rabbitmq_admin.create_vhost(name)
+
+
+def handle_delete_vhost(rabbitmq_admin: RabbitMQAdmin, name: str) -> None:
+    """Delete a virtual host."""
+    rabbitmq_admin.delete_vhost(name)
+
+
+## Permissions
+
+
+def handle_get_permissions(rabbitmq_admin: RabbitMQAdmin, vhost: str, user: str) -> dict:
+    """Get permissions for a user in a vhost."""
+    return rabbitmq_admin.get_permissions(vhost, user)
+
+
+def handle_set_permissions(
+    rabbitmq_admin: RabbitMQAdmin,
+    vhost: str,
+    user: str,
+    configure: str = ".*",
+    write: str = ".*",
+    read: str = ".*",
+) -> None:
+    """Set permissions for a user in a vhost."""
+    rabbitmq_admin.set_permissions(vhost, user, configure, write, read)
