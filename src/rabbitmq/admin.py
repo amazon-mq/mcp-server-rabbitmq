@@ -358,7 +358,7 @@ class RabbitMQAdmin:
         vhost_encoded = quote(vhost, safe="")
         self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name}")
 
-    # --- Phase 5: Health & Ops ---
+    # --- Health & Ops ---
 
     def check_local_alarms(self) -> dict:
         """Check for local alarms."""

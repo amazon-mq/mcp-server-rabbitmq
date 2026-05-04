@@ -591,7 +591,7 @@ def handle_check_migration_readiness(
 
 
 ################################################
-######   Phase 5: Health & Ops handlers   ######
+######      Health & Ops handlers         ######
 ################################################
 
 
