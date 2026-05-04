@@ -195,8 +195,6 @@ class RabbitMQAdmin:
         """Upload broker definitions (exchanges, queues, bindings, policies)."""
         self._make_request("POST", "definitions", data=definition)
 
-    # --- Phase 3: Core CRUD ---
-
     def create_queue(self, queue: str, vhost: str = "/", **kwargs) -> None:
         """Create a queue."""
         validate_rabbitmq_name(queue, "Queue name")

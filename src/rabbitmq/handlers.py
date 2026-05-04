@@ -270,7 +270,7 @@ def handle_get_node_information(rabbitmq_admin: RabbitMQAdmin, node_name: str) -
 
 
 ################################################
-######   Phase 3: Core CRUD handlers      ######
+######       Core CRUD handlers           ######
 ################################################
 
 
