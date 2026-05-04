@@ -316,11 +316,13 @@ class RabbitMQAdmin:
 
     def create_vhost(self, name: str) -> None:
         """Create a virtual host."""
-        self._make_request("PUT", f"vhosts/{name}", data={})
+        name_encoded = quote(name, safe="")
+        self._make_request("PUT", f"vhosts/{name_encoded}", data={})
 
     def delete_vhost(self, name: str) -> None:
         """Delete a virtual host."""
-        self._make_request("DELETE", f"vhosts/{name}")
+        name_encoded = quote(name, safe="")
+        self._make_request("DELETE", f"vhosts/{name_encoded}")
 
     def get_permissions(self, vhost: str, user: str) -> dict:
         """Get permissions for a user in a vhost."""
