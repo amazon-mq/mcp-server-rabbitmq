@@ -451,7 +451,7 @@ def handle_set_permissions(
 
 
 ################################################
-######   Phase 4B: Blue-Green Migration   ######
+######     Blue-Green Migration           ######
 ################################################
 
 

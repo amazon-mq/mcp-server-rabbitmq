@@ -336,7 +336,7 @@ class RabbitMQAdmin:
         data = {"configure": configure, "write": write, "read": read}
         self._make_request("PUT", f"permissions/{vhost_encoded}/{user}", data=data)
 
-    # --- Phase 4B: Federation ---
+    # --- Federation ---
 
     def list_federation_upstreams(self, vhost: str = "/") -> list[dict]:
         """List federation upstreams in a vhost."""
