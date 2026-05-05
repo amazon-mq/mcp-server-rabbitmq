@@ -357,3 +357,46 @@ class RabbitMQAdmin:
         """Delete a federation upstream."""
         vhost_encoded = quote(vhost, safe="")
         self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name}")
+
+    # --- Health & Ops ---
+
+    def _health_check(self, endpoint: str) -> dict:
+        """Make a health check request that doesn't raise on non-2xx status."""
+        url = f"{self.base_url}/{endpoint}"
+        response = requests.get(url, headers=self.headers, verify=True)
+        return {"status": response.status_code, "ok": response.status_code == 200}
+
+    def check_local_alarms(self) -> dict:
+        """Check for local alarms."""
+        return self._health_check("health/checks/local-alarms")
+
+    def check_certificate_expiration(self, within: int = 30, unit: str = "days") -> dict:
+        """Check if any certificates expire within the given timeframe."""
+        return self._health_check(f"health/checks/certificate-expiration/{within}/{unit}")
+
+    def check_protocol_listener(self, protocol: str) -> dict:
+        """Check if a protocol listener is active."""
+        return self._health_check(f"health/checks/protocol-listener/{protocol}")
+
+    def check_virtual_hosts(self) -> dict:
+        """Check health of all virtual hosts."""
+        return self._health_check("health/checks/virtual-hosts")
+
+    def list_feature_flags(self) -> list[dict]:
+        """List all feature flags."""
+        response = self._make_request("GET", "feature-flags")
+        return response.json()
+
+    def list_deprecated_features_in_use(self) -> list[dict]:
+        """List deprecated features currently in use."""
+        response = self._make_request("GET", "deprecated-features/used")
+        return response.json()
+
+    def rebalance_queues(self) -> None:
+        """Rebalance queue leaders across cluster nodes."""
+        self._make_request("POST", "rebalance/queues", data={})
+
+    def whoami(self) -> dict:
+        """Get the current authenticated user."""
+        response = self._make_request("GET", "whoami")
+        return response.json()
