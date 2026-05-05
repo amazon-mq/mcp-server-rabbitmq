@@ -21,7 +21,7 @@ wheels = [
 
 [[package]]
 name = "amq-mcp-server-rabbitmq"
-version = "2.2.4"
+version = "3.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
