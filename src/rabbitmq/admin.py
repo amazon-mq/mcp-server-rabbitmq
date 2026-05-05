@@ -360,27 +360,27 @@ class RabbitMQAdmin:
 
     # --- Health & Ops ---
 
+    def _health_check(self, endpoint: str) -> dict:
+        """Make a health check request that doesn't raise on non-2xx status."""
+        url = f"{self.base_url}/{endpoint}"
+        response = requests.get(url, headers=self.headers, verify=True)
+        return {"status": response.status_code, "ok": response.status_code == 200}
+
     def check_local_alarms(self) -> dict:
         """Check for local alarms."""
-        response = self._make_request("GET", "health/checks/local-alarms")
-        return {"status": response.status_code, "ok": response.status_code == 200}
+        return self._health_check("health/checks/local-alarms")
 
     def check_certificate_expiration(self, within: int = 30, unit: str = "days") -> dict:
         """Check if any certificates expire within the given timeframe."""
-        response = self._make_request(
-            "GET", f"health/checks/certificate-expiration/{within}/{unit}"
-        )
-        return {"status": response.status_code, "ok": response.status_code == 200}
+        return self._health_check(f"health/checks/certificate-expiration/{within}/{unit}")
 
     def check_protocol_listener(self, protocol: str) -> dict:
         """Check if a protocol listener is active."""
-        response = self._make_request("GET", f"health/checks/protocol-listener/{protocol}")
-        return {"status": response.status_code, "ok": response.status_code == 200}
+        return self._health_check(f"health/checks/protocol-listener/{protocol}")
 
     def check_virtual_hosts(self) -> dict:
         """Check health of all virtual hosts."""
-        response = self._make_request("GET", "health/checks/virtual-hosts")
-        return {"status": response.status_code, "ok": response.status_code == 200}
+        return self._health_check("health/checks/virtual-hosts")
 
     def list_feature_flags(self) -> list[dict]:
         """List all feature flags."""

@@ -596,34 +596,42 @@ def handle_check_migration_readiness(
 
 
 def handle_check_local_alarms(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    """Check for local alarms on the target node."""
     return rabbitmq_admin.check_local_alarms()
 
 
 def handle_check_certificate_expiration(
     rabbitmq_admin: RabbitMQAdmin, within: int = 30, unit: str = "days"
 ) -> dict:
+    """Check if any certificates expire within the given timeframe."""
     return rabbitmq_admin.check_certificate_expiration(within, unit)
 
 
 def handle_check_protocol_listener(rabbitmq_admin: RabbitMQAdmin, protocol: str) -> dict:
+    """Check if a protocol listener is active."""
     return rabbitmq_admin.check_protocol_listener(protocol)
 
 
 def handle_check_virtual_hosts(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    """Check health of all virtual hosts."""
     return rabbitmq_admin.check_virtual_hosts()
 
 
 def handle_list_feature_flags(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
+    """List all feature flags and their states."""
     return rabbitmq_admin.list_feature_flags()
 
 
 def handle_list_deprecated_features(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
+    """List deprecated features currently in use."""
     return rabbitmq_admin.list_deprecated_features_in_use()
 
 
 def handle_rebalance_queues(rabbitmq_admin: RabbitMQAdmin) -> None:
+    """Rebalance queue leaders across cluster nodes."""
     rabbitmq_admin.rebalance_queues()
 
 
 def handle_whoami(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    """Get the current authenticated user."""
     return rabbitmq_admin.whoami()
