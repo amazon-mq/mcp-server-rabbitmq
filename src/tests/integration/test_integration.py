@@ -4,6 +4,9 @@
 """Integration tests for RabbitMQ admin operations.
 
 Run: docker compose up -d && pytest src/tests/integration/ -v
+
+Tests within each class run in definition order (pytest default) and are
+intentionally sequential: create → operate → delete.
 """
 
 from src.rabbitmq.handlers import (
@@ -105,6 +108,8 @@ class TestCluster:
 
 
 class TestQueues:
+    """Tests run in definition order: create → list → get → publish → purge → delete."""
+
     def test_create_queue(self, admin):
         handle_create_queue(admin, TEST_QUEUE, queue_type="classic")
 
@@ -137,6 +142,8 @@ class TestQueues:
 
 
 class TestExchanges:
+    """Tests run in definition order: create → list → get → delete."""
+
     def test_create_exchange(self, admin):
         handle_create_exchange(admin, TEST_EXCHANGE, exchange_type="direct")
 
@@ -181,6 +188,8 @@ class TestBindings:
 
 
 class TestPolicies:
+    """Tests run in definition order: create → list → get → delete."""
+
     def test_create_policy(self, admin):
         handle_create_policy(admin, TEST_POLICY, ".*", {"max-length": 1000})
 
@@ -201,6 +210,8 @@ class TestPolicies:
 
 
 class TestVhosts:
+    """Tests run in definition order: create → permissions → delete."""
+
     def test_create_vhost(self, admin):
         handle_create_vhost(admin, TEST_VHOST)
         result = handle_list_vhosts(admin)
