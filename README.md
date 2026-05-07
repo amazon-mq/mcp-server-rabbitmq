@@ -73,6 +73,20 @@ Use uvx directly in your MCP client config
 - `--http-auth-audience`: Audience for FastMCP Bearer Auth Provider.
 - `--http-auth-required-scopes`: Required scopes for FastMCP Bearer Auth Provider.
 
+#### Environment Variables
+
+If `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, and `RABBITMQ_PASSWORD` are set, the server connects automatically on startup — no `initialize_connection` tool call required. Useful when running behind MCP proxies that spawn a fresh process per session.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RABBITMQ_HOST` | Broker hostname | _(required)_ |
+| `RABBITMQ_USERNAME` | Auth username | _(required)_ |
+| `RABBITMQ_PASSWORD` | Auth password | _(required)_ |
+| `RABBITMQ_PORT` | AMQP port | `5671` |
+| `RABBITMQ_MANAGEMENT_PORT` | Management API port | `443` (TLS) / `15672` (non-TLS) |
+| `RABBITMQ_USE_TLS` | `true` or `false` | `true` |
+| `RABBITMQ_ALIAS` | Broker alias for multi-broker setups | hostname |
+
 ## Usage Examples
 
 ### Strands Agent Example
