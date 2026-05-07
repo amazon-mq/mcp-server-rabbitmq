@@ -48,7 +48,9 @@ class RabbitMQAdmin:
     ) -> requests.Response:
         """Make HTTP request to RabbitMQ API."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(method, url, headers=self.headers, json=data, verify=True)
+        response = requests.request(
+            method, url, headers=self.headers, json=data, verify=(self.protocol == "https")
+        )
         response.raise_for_status()
         return response
 
@@ -363,7 +365,7 @@ class RabbitMQAdmin:
     def _health_check(self, endpoint: str) -> dict:
         """Make a health check request that doesn't raise on non-2xx status."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.get(url, headers=self.headers, verify=True)
+        response = requests.get(url, headers=self.headers, verify=(self.protocol == "https"))
         return {"status": response.status_code, "ok": response.status_code == 200}
 
     def check_local_alarms(self) -> dict:
