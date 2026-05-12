@@ -97,11 +97,6 @@ def handle_fanout(rabbitmq: RabbitMQConnection, exchange: str, message: str):
 ## Health check
 
 
-def handle_get_overview(rabbitmq_admin: RabbitMQAdmin) -> dict:
-    """Get the overview of the broker deployment."""
-    return rabbitmq_admin.get_overview()
-
-
 def handle_get_broker_overview(rabbitmq_admin: RabbitMQAdmin) -> dict:
     """Extract key observability fields from the broker overview."""
     raw = rabbitmq_admin.get_overview()

@@ -4,7 +4,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for Rab
 
 ## Features
 
-- **55+ tools** for broker management — connections, queues, exchanges, health checks, observability, and blue-green migration
+- **61 tools** for broker management — connections, queues, exchanges, health checks, observability, and blue-green migration
 - **16 composable skills** — topology visualization, dead letter analysis, capacity planning, and more
 - **Multi-broker support** — connect multiple brokers simultaneously, switch between them by alias
 - **Mutative tools gated** behind `--allow-mutative-tools` flag (off by default for safety)
@@ -123,14 +123,13 @@ You: Create a dead letter exchange and bind it to the orders queue
 | `rabbitmq_broker_get_permissions` | Get permissions for a user in a virtual host |
 | `rabbitmq_broker_whoami` | Get the current authenticated user |
 
-### Read-Only: Definitions and Migration (4 tools)
+### Read-Only: Definitions and Migration (3 tools)
 
 | Tool | Description |
 |------|-------------|
 | `rabbitmq_broker_get_broker_definition` | Get full broker definitions (exchanges, queues, bindings, users, etc.) |
 | `rabbitmq_broker_compare_definitions` | Compare definitions between two connected brokers |
 | `rabbitmq_broker_check_migration_readiness` | Pre-flight check for blue-green migration |
-| `rabbitmq_broker_export_definitions` | Export definitions with optional transformations |
 
 ### Read-Only: Observability (3 tools)
 
