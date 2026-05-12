@@ -10,7 +10,7 @@ members = [
 
 [[package]]
 name = "amq-mcp-server-rabbitmq"
-version = "3.0.0"
+version = "3.0.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },

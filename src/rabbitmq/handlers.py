@@ -14,12 +14,13 @@
 # This file is part of the awslabs namespace.
 # It is intentionally minimal to support PEP 420 namespace packages.
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List
 
 from .admin import RabbitMQAdmin
 from .connection import RabbitMQConnection
+from .skills import SKILLS
 
 ################################################
 ######      RabbitMQ doc handlers         ######
@@ -45,6 +46,27 @@ def handle_get_guidelines(guideline_name: str):
         available = ", ".join(guidelines.keys())
         raise ValueError(f"'{guideline_name}' doesn't exist. Available: {available}")
     return (script_dir / "doc" / filename).read_text()
+
+
+def handle_get_skill(skill_name: str) -> str:
+    """Get a workflow recipe by name."""
+    skill = SKILLS.get(skill_name)
+    if not skill:
+        lines = ["Unknown skill. Available skills:"]
+        for name, s in SKILLS.items():
+            lines.append(f"  - {name}: {s['description']}")
+        return "\n".join(lines)
+
+    lines = [
+        f"# Skill: {skill['name']}",
+        f"{skill['description']}",
+        f"Composes: {', '.join(skill['composes'])}",
+        "",
+        "## Steps",
+    ]
+    for i, step in enumerate(skill["steps"], 1):
+        lines.append(f"{i}. {step}")
+    return "\n".join(lines)
 
 
 ################################################
@@ -80,6 +102,115 @@ def handle_get_overview(rabbitmq_admin: RabbitMQAdmin) -> dict:
     return rabbitmq_admin.get_overview()
 
 
+def handle_get_broker_overview(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    """Extract key observability fields from the broker overview."""
+    raw = rabbitmq_admin.get_overview()
+
+    queue_totals = raw.get("queue_totals", {})
+    object_totals = raw.get("object_totals", {})
+    message_stats = raw.get("message_stats", {})
+
+    return {
+        "rabbitmq_version": raw.get("rabbitmq_version"),
+        "erlang_version": raw.get("erlang_version"),
+        "cluster_name": raw.get("cluster_name"),
+        "node_count": len(rabbitmq_admin.get_cluster_nodes()),
+        "queue_totals": {
+            "messages": queue_totals.get("messages", 0),
+            "messages_ready": queue_totals.get("messages_ready", 0),
+            "messages_unacknowledged": queue_totals.get("messages_unacknowledged", 0),
+        },
+        "object_totals": {
+            "connections": object_totals.get("connections", 0),
+            "channels": object_totals.get("channels", 0),
+            "queues": object_totals.get("queues", 0),
+            "exchanges": object_totals.get("exchanges", 0),
+            "consumers": object_totals.get("consumers", 0),
+        },
+        "message_stats": {
+            "publish_rate": message_stats.get("publish_details", {}).get("rate", 0.0),
+            "deliver_rate": message_stats.get("deliver_details", {}).get("rate", 0.0),
+            "ack_rate": message_stats.get("ack_details", {}).get("rate", 0.0),
+        },
+        "listeners": raw.get("listeners", []),
+    }
+
+
+def handle_find_queues_by_threshold(
+    rabbitmq_admin: RabbitMQAdmin,
+    min_depth: int | None = None,
+    min_idle_seconds: int | None = None,
+    no_consumers: bool = False,
+    min_unacked: int | None = None,
+    vhost: str = "/",
+) -> list[dict]:
+    """Find queues matching threshold criteria."""
+    queues = rabbitmq_admin.list_queues_with_details(vhost)
+    now = datetime.now(timezone.utc)
+    results = []
+
+    for q in queues:
+        if min_depth is not None and q.get("messages", 0) < min_depth:
+            continue
+        if no_consumers and q.get("consumers", 1) != 0:
+            continue
+        if min_unacked is not None and q.get("messages_unacknowledged", 0) < min_unacked:
+            continue
+        if min_idle_seconds is not None:
+            idle_since = q.get("idle_since")
+            if not idle_since:
+                continue
+            try:
+                idle_dt = datetime.strptime(idle_since, "%Y-%m-%d %H:%M:%S")
+                idle_dt = idle_dt.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                try:
+                    idle_dt = datetime.fromisoformat(idle_since)
+                    if idle_dt.tzinfo is None:
+                        idle_dt = idle_dt.replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    continue
+            if (now - idle_dt).total_seconds() < min_idle_seconds:
+                continue
+
+        results.append(
+            {
+                "name": q.get("name"),
+                "vhost": q.get("vhost"),
+                "messages": q.get("messages", 0),
+                "consumers": q.get("consumers", 0),
+                "messages_unacknowledged": q.get("messages_unacknowledged", 0),
+                "idle_since": q.get("idle_since"),
+                "type": q.get("type"),
+            }
+        )
+
+    return results
+
+
+def handle_get_connection_churn(rabbitmq_admin: RabbitMQAdmin) -> dict:
+    """Extract connection and channel churn rates from the broker overview."""
+    raw = rabbitmq_admin.get_overview()
+    churn = raw.get("churn_rates", {})
+
+    fields = [
+        "connection_closed",
+        "connection_opened",
+        "channel_closed",
+        "channel_opened",
+        "queue_declared",
+        "queue_deleted",
+    ]
+
+    result: dict = {}
+    for field in fields:
+        result[field] = {
+            "total": churn.get(field, 0),
+            "rate": churn.get(f"{field}_details", {}).get("rate", 0.0),
+        }
+    return result
+
+
 def handle_is_broker_in_alarm(rabbitmq_admin: RabbitMQAdmin) -> bool:
     """Check the alarm status of the RabbitMQ broker."""
     status = rabbitmq_admin.get_alarm_status()
@@ -94,7 +225,11 @@ def handle_is_node_in_quorum_critical(rabbitmq_admin: RabbitMQAdmin) -> bool:
 
 def handle_get_definition(rabbitmq_admin: RabbitMQAdmin) -> dict:
     """Get the server definition."""
-    return rabbitmq_admin.get_broker_definition()
+    defs = rabbitmq_admin.get_broker_definition()
+    for user in defs.get("users", []):
+        user.pop("password_hash", None)
+        user.pop("hashing_algorithm", None)
+    return defs
 
 
 def handle_update_definition(rabbitmq_admin: RabbitMQAdmin, server_definition: dict):
@@ -245,7 +380,11 @@ def handle_shovel(rabbitmq_admin: RabbitMQAdmin, shovel_name: str, vhost: str = 
 
 def handle_list_users(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
     """List all users on the RabbitMQ broker."""
-    return rabbitmq_admin.list_users()
+    users = rabbitmq_admin.list_users()
+    for user in users:
+        user.pop("password_hash", None)
+        user.pop("hashing_algorithm", None)
+    return users
 
 
 ## Bindings

@@ -35,7 +35,7 @@ class RabbitMQMCPServer:
         self.logger.info(f"Starting RabbitMQ MCP Server v{MCP_SERVER_VERSION}")
 
         if args.http:
-            if args.http_auth_jwks_uri == "":
+            if not args.http_auth_jwks_uri:
                 raise ValueError("Please set --http-auth-jwks-uri")
             self.mcp.auth = BearerAuthProvider(
                 jwks_uri=args.http_auth_jwks_uri,

@@ -22,6 +22,8 @@ import requests
 
 from .connection import validate_rabbitmq_name
 
+REQUEST_TIMEOUT = (5, 30)
+
 
 # https://rawcdn.githack.com/rabbitmq/rabbitmq-server/v4.0.7/deps/rabbitmq_management/priv/www/api/index.html
 class RabbitMQAdmin:
@@ -40,15 +42,23 @@ class RabbitMQAdmin:
         if port is None:
             port = 443 if use_tls else 15672
         self.base_url = f"{self.protocol}://{hostname}:{port}/api"
-        self.auth = base64.b64encode(f"{username}:{password}".encode()).decode()
-        self.headers = {"Authorization": f"Basic {self.auth}", "Content-Type": "application/json"}
+        self._username = username
+        self._password = password
+
+    @property
+    def headers(self) -> dict:
+        """Generate auth headers on demand to avoid storing encoded credentials."""
+        auth = base64.b64encode(f"{self._username}:{self._password}".encode()).decode()
+        return {"Authorization": f"Basic {auth}", "Content-Type": "application/json"}
 
     def _make_request(
         self, method: str, endpoint: str, data: Optional[dict] = None
     ) -> requests.Response:
         """Make HTTP request to RabbitMQ API."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(method, url, headers=self.headers, json=data, verify=True)
+        response = requests.request(
+            method, url, headers=self.headers, json=data, verify=True, timeout=REQUEST_TIMEOUT
+        )
         response.raise_for_status()
         return response
 
@@ -66,6 +76,10 @@ class RabbitMQAdmin:
         vhost_encoded = quote(vhost, safe="")
         response = self._make_request("GET", f"queues/{vhost_encoded}")
         return response.json()
+
+    def list_queues_with_details(self, vhost: str = "/") -> list[dict]:
+        """List all queues in a vhost with full detail (for threshold filtering)."""
+        return self.list_queues_by_vhost(vhost)
 
     def list_exchanges(self) -> list[dict]:
         """List all exchanges in the RabbitMQ server."""
@@ -143,7 +157,8 @@ class RabbitMQAdmin:
     def get_shovel_info(self, shovel_name: str, vhost: str = "/") -> dict:
         """Get detailed information about a specific shovel in a vhost."""
         vhost_encoded = quote(vhost, safe="")
-        response = self._make_request("GET", f"parameters/shovel/{vhost_encoded}/{shovel_name}")
+        shovel_encoded = quote(shovel_name, safe="")
+        response = self._make_request("GET", f"parameters/shovel/{vhost_encoded}/{shovel_encoded}")
         return response.json()
 
     def get_cluster_nodes(self) -> dict:
@@ -153,12 +168,14 @@ class RabbitMQAdmin:
 
     def get_node_information(self, node_name: str) -> dict:
         """Get a node information."""
-        response = self._make_request("GET", f"nodes/{node_name}")
+        node_encoded = quote(node_name, safe="")
+        response = self._make_request("GET", f"nodes/{node_encoded}")
         return response.json()
 
     def get_node_memory(self, node_name: str) -> dict:
         """Get a node memory usage breakdown information."""
-        response = self._make_request("GET", f"nodes/{node_name}/memory")
+        node_encoded = quote(node_name, safe="")
+        response = self._make_request("GET", f"nodes/{node_encoded}/memory")
         return response.json()
 
     def list_connections(self) -> dict:
@@ -310,7 +327,8 @@ class RabbitMQAdmin:
 
     def close_connection(self, name: str) -> None:
         """Close a connection."""
-        self._make_request("DELETE", f"connections/{name}")
+        name_encoded = quote(name, safe="")
+        self._make_request("DELETE", f"connections/{name_encoded}")
 
     def create_vhost(self, name: str) -> None:
         """Create a virtual host."""
@@ -363,8 +381,13 @@ class RabbitMQAdmin:
     def _health_check(self, endpoint: str) -> dict:
         """Make a health check request that doesn't raise on non-2xx status."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.get(url, headers=self.headers, verify=True)
-        return {"status": response.status_code, "ok": response.status_code == 200}
+        try:
+            response = requests.get(
+                url, headers=self.headers, verify=True, timeout=REQUEST_TIMEOUT
+            )
+            return {"status": response.status_code, "ok": response.status_code == 200}
+        except requests.RequestException as e:
+            return {"status": 0, "ok": False, "error": str(e)}
 
     def check_local_alarms(self) -> dict:
         """Check for local alarms."""
@@ -376,7 +399,8 @@ class RabbitMQAdmin:
 
     def check_protocol_listener(self, protocol: str) -> dict:
         """Check if a protocol listener is active."""
-        return self._health_check(f"health/checks/protocol-listener/{protocol}")
+        protocol_encoded = quote(protocol, safe="")
+        return self._health_check(f"health/checks/protocol-listener/{protocol_encoded}")
 
     def check_virtual_hosts(self) -> dict:
         """Check health of all virtual hosts."""
