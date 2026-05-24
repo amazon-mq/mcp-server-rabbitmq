@@ -6,8 +6,9 @@ import os
 import sys
 
 from fastmcp import FastMCP
-from fastmcp.server.auth import BearerAuthProvider
 from loguru import logger
+
+from .auth import JWKSBearerVerifier
 
 from .constant import MCP_SERVER_VERSION
 from .rabbitmq.module import RabbitMQModule
@@ -37,7 +38,7 @@ class RabbitMQMCPServer:
         if args.http:
             if not args.http_auth_jwks_uri:
                 raise ValueError("Please set --http-auth-jwks-uri")
-            self.mcp.auth = BearerAuthProvider(
+            self.mcp.auth = JWKSBearerVerifier(
                 jwks_uri=args.http_auth_jwks_uri,
                 issuer=args.http_auth_issuer,
                 audience=args.http_auth_audience,
