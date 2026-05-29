@@ -14,10 +14,12 @@
 # This file is part of the awslabs namespace.
 # It is intentionally minimal to support PEP 420 namespace packages.
 
+import ipaddress
 import ssl
 from typing import Any
 
 import pika
+from loguru import logger
 
 
 class RabbitMQConnection:
@@ -27,6 +29,8 @@ class RabbitMQConnection:
         self, hostname: str, username: str, password: str, port: int = 5671, use_tls: bool = True
     ):
         """Initialize RabbitMQ connection parameters."""
+        if not use_tls:
+            logger.warning("Connecting to broker without TLS - credentials will be sent in plaintext")
         credentials = pika.PlainCredentials(username, password)
         ssl_options = None
         if use_tls:
@@ -56,3 +60,37 @@ def validate_rabbitmq_name(name: str, field_name: str) -> None:
         )
     if len(name) > 255:
         raise ValueError(f"{field_name} must be less than 255 characters")
+
+
+def validate_hostname(hostname: str) -> None:
+    """Validate hostname to block SSRF against internal/loopback addresses.
+
+    If the hostname is a DNS name (not an IP literal), it is allowed through
+    since we cannot resolve it without an allowlist.
+    """
+    if not hostname or not hostname.strip():
+        raise ValueError("Hostname cannot be empty")
+
+    try:
+        addr = ipaddress.ip_address(hostname)
+    except ValueError:
+        # Not an IP literal (it is a DNS name) - allow it
+        return
+
+    # IPv4 loopback: 127.0.0.0/8
+    if addr.is_loopback:
+        raise ValueError(f"Hostname {hostname} is a loopback address and is not allowed")
+
+    # IPv6 loopback: ::1
+    if addr == ipaddress.ip_address("::1"):
+        raise ValueError(f"Hostname {hostname} is a loopback address and is not allowed")
+
+    # IPv4 link-local metadata endpoint: 169.254.169.254
+    if addr == ipaddress.ip_address("169.254.169.254"):
+        raise ValueError(
+            f"Hostname {hostname} is the cloud metadata endpoint and is not allowed"
+        )
+
+    # IPv4 link-local: 169.254.0.0/16
+    if addr.is_link_local:
+        raise ValueError(f"Hostname {hostname} is a link-local address and is not allowed")

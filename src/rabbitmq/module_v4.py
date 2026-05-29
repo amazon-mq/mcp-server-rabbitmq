@@ -14,13 +14,12 @@
 
 """v4 consolidated tool module: 59 tools merged into 28 enum-based dispatchers."""
 
-from enum import Enum
 from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
 from .admin import RabbitMQAdmin
-from .connection import RabbitMQConnection, validate_rabbitmq_name
+from .connection import RabbitMQConnection, validate_hostname, validate_rabbitmq_name
 from .handlers import (
     handle_check_certificate_expiration,
     handle_check_local_alarms,
@@ -95,6 +94,7 @@ class RabbitMQModuleV4:
         self.brokers: dict[str, dict] = {}
         self.active_alias: str | None = None
         self.default_management_port: int | None = None
+        self._mutative_enabled: bool = False
 
     def _get_admin(self) -> RabbitMQAdmin:
         if not self.active_alias or self.active_alias not in self.brokers:
@@ -111,6 +111,8 @@ class RabbitMQModuleV4:
         groups: tuple[str, ...] = TOOL_GROUPS,
     ):
         """Register tool groups dynamically."""
+        if "mutative" in groups:
+            self._mutative_enabled = True
         if "core" in groups:
             self._register_core()
         if "read" in groups:
@@ -135,10 +137,14 @@ class RabbitMQModuleV4:
             alias: str | None = None,
         ) -> str:
             """Connect to a RabbitMQ broker. Use alias to manage multiple brokers (e.g. 'blue', 'green')."""
+            validate_hostname(hostname)
             alias = alias or hostname
             rmq = RabbitMQConnection(hostname=hostname, username=username, password=password, port=port, use_tls=use_tls)
             rmq_admin = RabbitMQAdmin(hostname=hostname, username=username, password=password, use_tls=use_tls, port=self.default_management_port)
-            rmq_admin.test_connection()
+            try:
+                rmq_admin.test_connection()
+            except Exception as e:
+                raise ValueError(f"Failed to connect to {hostname}: {e}")
             self.brokers[alias] = {"rmq": rmq, "rmq_admin": rmq_admin, "hostname": hostname}
             self.active_alias = alias
             return f"Connected to {hostname} as '{alias}'"
@@ -146,10 +152,14 @@ class RabbitMQModuleV4:
         @self.mcp.tool()
         def connect_oauth(hostname: str, oauth_token: str, alias: str | None = None) -> str:
             """Connect using OAuth token."""
+            validate_hostname(hostname)
             alias = alias or hostname
             rmq = RabbitMQConnection(hostname=hostname, username="", password=oauth_token)
             rmq_admin = RabbitMQAdmin(hostname=hostname, username="", password=oauth_token, port=self.default_management_port)
-            rmq_admin.test_connection()
+            try:
+                rmq_admin.test_connection()
+            except Exception as e:
+                raise ValueError(f"Failed to connect to {hostname}: {e}")
             self.brokers[alias] = {"rmq": rmq, "rmq_admin": rmq_admin, "hostname": hostname}
             self.active_alias = alias
             return f"Connected to {hostname} as '{alias}'"
@@ -217,10 +227,10 @@ class RabbitMQModuleV4:
 
         @self.mcp.tool()
         def connections(
-            action: Literal["list", "channels", "churn", "close"] = "list",
+            action: Literal["list", "channels", "churn"] = "list",
             name: str | None = None,
         ) -> Any:
-            """Connection operations. list: all connections. channels: all channels. churn: open/close rates. close: close a connection by name."""
+            """Connection operations. list: all connections. channels: all channels. churn: open/close rates."""
             admin = self._get_admin()
             if action == "list":
                 return handle_list_connections(admin)
@@ -228,18 +238,13 @@ class RabbitMQModuleV4:
                 return handle_list_channels(admin)
             if action == "churn":
                 return handle_get_connection_churn(admin)
-            if action == "close":
-                if not name:
-                    raise ValueError("name required for close")
-                handle_close_connection(admin, name)
-                return "Connection closed"
 
         @self.mcp.tool()
         def cluster(
-            action: Literal["nodes", "node_info", "node_memory", "rebalance"] = "nodes",
+            action: Literal["nodes", "node_info", "node_memory"] = "nodes",
             node_name: str | None = None,
         ) -> Any:
-            """Cluster operations. nodes: list. node_info/node_memory: details for one node. rebalance: rebalance queue leaders across nodes."""
+            """Cluster operations. nodes: list. node_info/node_memory: details for one node."""
             admin = self._get_admin()
             if action == "nodes":
                 return handle_get_cluster_nodes(admin)
@@ -251,9 +256,6 @@ class RabbitMQModuleV4:
                 if not node_name:
                     raise ValueError("node_name required")
                 return handle_get_cluster_node_memory(admin, node_name)
-            if action == "rebalance":
-                handle_rebalance_queues(admin)
-                return "Rebalance initiated"
 
         @self.mcp.tool()
         def entities(action: Literal["vhosts", "users", "consumers"]) -> list:
@@ -314,13 +316,15 @@ class RabbitMQModuleV4:
             write: str = ".*",
             read: str = ".*",
         ) -> Any:
-            """Auth operations. whoami: current user. permissions: get permissions for user in vhost. set_permissions: set permissions (configure/write/read patterns)."""
+            """Auth operations. whoami: current user. permissions: get permissions for user in vhost. set_permissions: set permissions (requires mutative group)."""
             admin = self._get_admin()
             if action == "whoami":
                 return handle_whoami(admin)
             if action == "permissions":
                 return handle_get_permissions(admin, vhost, user)
             if action == "set_permissions":
+                if not self._mutative_enabled:
+                    raise ValueError("set_permissions requires the 'mutative' tool group to be loaded")
                 handle_set_permissions(admin, vhost, user, configure, write, read)
                 return f"Permissions set for {user} in {vhost}"
 
@@ -442,6 +446,21 @@ class RabbitMQModuleV4:
                 result = handle_publish_message(self._get_admin(), target, routing_key, message, vhost, properties)
                 return f"Published via HTTP: {result}"
 
+        @self.mcp.tool()
+        def close_connection(name: str) -> str:
+            """Close a connection by name."""
+            if not name:
+                raise ValueError("name required")
+            admin = self._get_admin()
+            handle_close_connection(admin, name)
+            return "Connection closed"
+
+        @self.mcp.tool()
+        def rebalance_queues() -> str:
+            """Rebalance queue leaders across cluster nodes."""
+            admin = self._get_admin()
+            handle_rebalance_queues(admin)
+            return "Rebalance initiated"
 
     def _register_migration(self):
         @self.mcp.tool()

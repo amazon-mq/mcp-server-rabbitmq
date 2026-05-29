@@ -94,33 +94,39 @@ class RabbitMQAdmin:
 
     def get_queue_info(self, queue: str, vhost: str = "/") -> dict:
         """Get detailed information about a specific queue."""
+        validate_rabbitmq_name(queue, "Queue name")
         vhost_encoded = quote(vhost, safe="")
-        response = self._make_request("GET", f"queues/{vhost_encoded}/{queue}")
+        queue_encoded = quote(queue, safe="")
+        response = self._make_request("GET", f"queues/{vhost_encoded}/{queue_encoded}")
         return response.json()
 
     def delete_queue(self, queue: str, vhost: str = "/") -> None:
         """Delete a queue."""
         validate_rabbitmq_name(queue, "Queue name")
         vhost_encoded = quote(vhost, safe="")
-        self._make_request("DELETE", f"queues/{vhost_encoded}/{queue}")
+        queue_encoded = quote(queue, safe="")
+        self._make_request("DELETE", f"queues/{vhost_encoded}/{queue_encoded}")
 
     def purge_queue(self, queue: str, vhost: str = "/") -> None:
         """Remove all messages from a queue."""
         validate_rabbitmq_name(queue, "Queue name")
         vhost_encoded = quote(vhost, safe="")
-        self._make_request("DELETE", f"queues/{vhost_encoded}/{queue}/contents")
+        queue_encoded = quote(queue, safe="")
+        self._make_request("DELETE", f"queues/{vhost_encoded}/{queue_encoded}/contents")
 
     def get_exchange_info(self, exchange: str, vhost: str = "/") -> dict:
         """Get detailed information about a specific exchange."""
         vhost_encoded = quote(vhost, safe="")
-        response = self._make_request("GET", f"exchanges/{vhost_encoded}/{exchange}")
+        exchange_encoded = quote(exchange, safe="")
+        response = self._make_request("GET", f"exchanges/{vhost_encoded}/{exchange_encoded}")
         return response.json()
 
     def delete_exchange(self, exchange: str, vhost: str = "/") -> None:
         """Delete an exchange."""
         validate_rabbitmq_name(exchange, "Exchange name")
         vhost_encoded = quote(vhost, safe="")
-        self._make_request("DELETE", f"exchanges/{vhost_encoded}/{exchange}")
+        exchange_encoded = quote(exchange, safe="")
+        self._make_request("DELETE", f"exchanges/{vhost_encoded}/{exchange_encoded}")
 
     def get_bindings(
         self, queue: Optional[str] = None, exchange: Optional[str] = None, vhost: str = "/"
@@ -129,11 +135,13 @@ class RabbitMQAdmin:
         vhost_encoded = quote(vhost, safe="")
         if queue:
             validate_rabbitmq_name(queue, "Queue name")
-            response = self._make_request("GET", f"queues/{vhost_encoded}/{queue}/bindings")
+            queue_encoded = quote(queue, safe="")
+            response = self._make_request("GET", f"queues/{vhost_encoded}/{queue_encoded}/bindings")
         elif exchange:
             validate_rabbitmq_name(exchange, "Exchange name")
+            exchange_encoded = quote(exchange, safe="")
             response = self._make_request(
-                "GET", f"exchanges/{vhost_encoded}/{exchange}/bindings/source"
+                "GET", f"exchanges/{vhost_encoded}/{exchange_encoded}/bindings/source"
             )
         else:
             response = self._make_request("GET", f"bindings/{vhost_encoded}")
@@ -216,7 +224,8 @@ class RabbitMQAdmin:
         """Create a queue."""
         validate_rabbitmq_name(queue, "Queue name")
         vhost_encoded = quote(vhost, safe="")
-        self._make_request("PUT", f"queues/{vhost_encoded}/{queue}", data=kwargs or {})
+        queue_encoded = quote(queue, safe="")
+        self._make_request("PUT", f"queues/{vhost_encoded}/{queue_encoded}", data=kwargs or {})
 
     def create_exchange(
         self, exchange: str, exchange_type: str = "direct", vhost: str = "/", **kwargs
@@ -224,8 +233,9 @@ class RabbitMQAdmin:
         """Create an exchange."""
         validate_rabbitmq_name(exchange, "Exchange name")
         vhost_encoded = quote(vhost, safe="")
+        exchange_encoded = quote(exchange, safe="")
         data = {"type": exchange_type, **kwargs}
-        self._make_request("PUT", f"exchanges/{vhost_encoded}/{exchange}", data=data)
+        self._make_request("PUT", f"exchanges/{vhost_encoded}/{exchange_encoded}", data=data)
 
     def create_binding(
         self,
@@ -237,16 +247,21 @@ class RabbitMQAdmin:
     ) -> None:
         """Create a binding from exchange to queue."""
         vhost_encoded = quote(vhost, safe="")
+        exchange_encoded = quote(exchange, safe="")
+        queue_encoded = quote(queue, safe="")
         data: dict = {"routing_key": routing_key}
         if arguments:
             data["arguments"] = arguments
-        self._make_request("POST", f"bindings/{vhost_encoded}/e/{exchange}/q/{queue}", data=data)
+        self._make_request("POST", f"bindings/{vhost_encoded}/e/{exchange_encoded}/q/{queue_encoded}", data=data)
 
     def delete_binding(self, vhost: str, exchange: str, queue: str, props_key: str) -> None:
         """Delete a binding."""
         vhost_encoded = quote(vhost, safe="")
+        exchange_encoded = quote(exchange, safe="")
+        queue_encoded = quote(queue, safe="")
+        props_encoded = quote(props_key, safe="")
         self._make_request(
-            "DELETE", f"bindings/{vhost_encoded}/e/{exchange}/q/{queue}/{props_key}"
+            "DELETE", f"bindings/{vhost_encoded}/e/{exchange_encoded}/q/{queue_encoded}/{props_encoded}"
         )
 
     def list_policies(self, vhost: str = "/") -> list[dict]:
@@ -258,7 +273,8 @@ class RabbitMQAdmin:
     def get_policy(self, name: str, vhost: str = "/") -> dict:
         """Get a specific policy."""
         vhost_encoded = quote(vhost, safe="")
-        response = self._make_request("GET", f"policies/{vhost_encoded}/{name}")
+        name_encoded = quote(name, safe="")
+        response = self._make_request("GET", f"policies/{vhost_encoded}/{name_encoded}")
         return response.json()
 
     def create_policy(
@@ -272,18 +288,20 @@ class RabbitMQAdmin:
     ) -> None:
         """Create or update a policy."""
         vhost_encoded = quote(vhost, safe="")
+        name_encoded = quote(name, safe="")
         data = {
             "pattern": pattern,
             "definition": definition,
             "priority": priority,
             "apply-to": apply_to,
         }
-        self._make_request("PUT", f"policies/{vhost_encoded}/{name}", data=data)
+        self._make_request("PUT", f"policies/{vhost_encoded}/{name_encoded}", data=data)
 
     def delete_policy(self, name: str, vhost: str = "/") -> None:
         """Delete a policy."""
         vhost_encoded = quote(vhost, safe="")
-        self._make_request("DELETE", f"policies/{vhost_encoded}/{name}")
+        name_encoded = quote(name, safe="")
+        self._make_request("DELETE", f"policies/{vhost_encoded}/{name_encoded}")
 
     def publish_message(
         self,
@@ -295,6 +313,7 @@ class RabbitMQAdmin:
     ) -> dict:
         """Publish a message via the HTTP API."""
         vhost_encoded = quote(vhost, safe="")
+        exchange_encoded = quote(exchange, safe="")
         data = {
             "routing_key": routing_key,
             "payload": payload,
@@ -302,7 +321,7 @@ class RabbitMQAdmin:
             "properties": properties or {},
         }
         response = self._make_request(
-            "POST", f"exchanges/{vhost_encoded}/{exchange}/publish", data=data
+            "POST", f"exchanges/{vhost_encoded}/{exchange_encoded}/publish", data=data
         )
         return response.json()
 
@@ -315,9 +334,11 @@ class RabbitMQAdmin:
         encoding: str = "auto",
     ) -> list[dict]:
         """Get messages from a queue (peek)."""
+        validate_rabbitmq_name(queue, "Queue name")
         vhost_encoded = quote(vhost, safe="")
+        queue_encoded = quote(queue, safe="")
         data = {"count": count, "ackmode": ackmode, "encoding": encoding}
-        response = self._make_request("POST", f"queues/{vhost_encoded}/{queue}/get", data=data)
+        response = self._make_request("POST", f"queues/{vhost_encoded}/{queue_encoded}/get", data=data)
         return response.json()
 
     def list_channels(self) -> list[dict]:
@@ -343,7 +364,8 @@ class RabbitMQAdmin:
     def get_permissions(self, vhost: str, user: str) -> dict:
         """Get permissions for a user in a vhost."""
         vhost_encoded = quote(vhost, safe="")
-        response = self._make_request("GET", f"permissions/{vhost_encoded}/{user}")
+        user_encoded = quote(user, safe="")
+        response = self._make_request("GET", f"permissions/{vhost_encoded}/{user_encoded}")
         return response.json()
 
     def set_permissions(
@@ -351,8 +373,9 @@ class RabbitMQAdmin:
     ) -> None:
         """Set permissions for a user in a vhost."""
         vhost_encoded = quote(vhost, safe="")
+        user_encoded = quote(user, safe="")
         data = {"configure": configure, "write": write, "read": read}
-        self._make_request("PUT", f"permissions/{vhost_encoded}/{user}", data=data)
+        self._make_request("PUT", f"permissions/{vhost_encoded}/{user_encoded}", data=data)
 
     # --- Federation ---
 
@@ -365,16 +388,18 @@ class RabbitMQAdmin:
     def create_federation_upstream(self, name: str, uri: str, vhost: str = "/", **kwargs) -> None:
         """Create a federation upstream."""
         vhost_encoded = quote(vhost, safe="")
+        name_encoded = quote(name, safe="")
         value = {"uri": uri, **kwargs}
         data = {"value": value}
         self._make_request(
-            "PUT", f"parameters/federation-upstream/{vhost_encoded}/{name}", data=data
+            "PUT", f"parameters/federation-upstream/{vhost_encoded}/{name_encoded}", data=data
         )
 
     def delete_federation_upstream(self, name: str, vhost: str = "/") -> None:
         """Delete a federation upstream."""
         vhost_encoded = quote(vhost, safe="")
-        self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name}")
+        name_encoded = quote(name, safe="")
+        self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name_encoded}")
 
     # --- Health & Ops ---
 

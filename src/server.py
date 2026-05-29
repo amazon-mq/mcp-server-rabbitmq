@@ -24,17 +24,28 @@ class RabbitMQMCPServer:
         use_v4: bool = False,
         tool_groups: tuple[str, ...] | None = None,
         v1_compat: bool = False,
+        http_auth_config: dict | None = None,
     ):
         # Setup logger
         logger.remove()
         logger.add(sys.stderr, level=os.getenv("FASTMCP_LOG_LEVEL", "WARNING"))
         self.logger = logger
 
+        # Build FastMCP kwargs, including token_verifier if HTTP auth is configured
+        mcp_kwargs: dict = {
+            "name": "mcp-server-rabbitmq",
+            "instructions": "Manage RabbitMQ message brokers and interact with queues and exchanges.",
+        }
+        if http_auth_config:
+            mcp_kwargs["token_verifier"] = JWKSBearerVerifier(
+                jwks_uri=http_auth_config["jwks_uri"],
+                issuer=http_auth_config.get("issuer"),
+                audience=http_auth_config.get("audience"),
+                required_scopes=http_auth_config.get("required_scopes"),
+            )
+
         # Initialize FastMCP
-        self.mcp = FastMCP(
-            "mcp-server-rabbitmq",
-            instructions="""Manage RabbitMQ message brokers and interact with queues and exchanges.""",
-        )
+        self.mcp = FastMCP(**mcp_kwargs)
 
         if use_v4:
             groups = tool_groups or (
@@ -59,14 +70,6 @@ class RabbitMQMCPServer:
         self.logger.info(f"Starting RabbitMQ MCP Server v{MCP_SERVER_VERSION}")
 
         if args.http:
-            if not args.http_auth_jwks_uri:
-                raise ValueError("Please set --http-auth-jwks-uri")
-            self.mcp._token_verifier = JWKSBearerVerifier(
-                jwks_uri=args.http_auth_jwks_uri,
-                issuer=args.http_auth_issuer,
-                audience=args.http_auth_audience,
-                required_scopes=args.http_auth_required_scopes,
-            )
             self.mcp.run(
                 transport="streamable-http",
                 host="127.0.0.1",
@@ -74,6 +77,7 @@ class RabbitMQMCPServer:
                 path="/mcp",
             )
         else:
+            self.logger.warning("Running in stdio mode - no authentication enforced")
             self.mcp.run()
 
 
@@ -142,6 +146,18 @@ def main():
 
     args = parser.parse_args()
 
+    # Build HTTP auth config if running in HTTP mode
+    http_auth_config = None
+    if args.http:
+        if not args.http_auth_jwks_uri:
+            raise ValueError("Please set --http-auth-jwks-uri")
+        http_auth_config = {
+            "jwks_uri": args.http_auth_jwks_uri,
+            "issuer": args.http_auth_issuer,
+            "audience": args.http_auth_audience,
+            "required_scopes": args.http_auth_required_scopes,
+        }
+
     # Create server with connection parameters from args
     tool_groups = tuple(args.tool_groups) if args.tool_groups else None
     server = RabbitMQMCPServer(
@@ -150,6 +166,7 @@ def main():
         use_v4=args.v4,
         tool_groups=tool_groups,
         v1_compat=args.v1_compat,
+        http_auth_config=http_auth_config,
     )
 
     # Run the server with remaining args
