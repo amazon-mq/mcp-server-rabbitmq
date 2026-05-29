@@ -77,7 +77,7 @@ def handle_get_skill(skill_name: str) -> str:
 def handle_enqueue(rabbitmq: RabbitMQConnection, queue: str, message: str):
     """Send a message to a RabbitMQ queue."""
     connection, channel = rabbitmq.get_channel()
-    channel.queue_declare(queue)
+    channel.queue_declare(queue, durable=True)
     channel.basic_publish(exchange="", routing_key=queue, body=message)
     connection.close()
 
@@ -85,7 +85,7 @@ def handle_enqueue(rabbitmq: RabbitMQConnection, queue: str, message: str):
 def handle_fanout(rabbitmq: RabbitMQConnection, exchange: str, message: str):
     """Publish a message to a fanout exchange."""
     connection, channel = rabbitmq.get_channel()
-    channel.exchange_declare(exchange=exchange, exchange_type="fanout")
+    channel.exchange_declare(exchange=exchange, exchange_type="fanout", durable=True)
     channel.basic_publish(exchange=exchange, routing_key="", body=message)
     connection.close()
 
