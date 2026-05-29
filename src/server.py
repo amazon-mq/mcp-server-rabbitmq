@@ -5,7 +5,7 @@ import argparse
 import os
 import sys
 
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 from loguru import logger
 
 from .auth import JWKSBearerVerifier
