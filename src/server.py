@@ -11,6 +11,7 @@ from loguru import logger
 from .auth import JWKSBearerVerifier
 
 from .constant import MCP_SERVER_VERSION
+from .rabbitmq.compat_v3 import register_v3_compat_tools
 from .rabbitmq.module import RabbitMQModule
 from .rabbitmq.module_v4 import RabbitMQModuleV4, TOOL_GROUPS
 
@@ -22,6 +23,7 @@ class RabbitMQMCPServer:
         management_port: int | None = None,
         use_v4: bool = False,
         tool_groups: tuple[str, ...] | None = None,
+        v1_compat: bool = False,
     ):
         # Setup logger
         logger.remove()
@@ -44,6 +46,9 @@ class RabbitMQMCPServer:
             module.default_management_port = management_port
             module.register_tools(groups)
             self.logger.info(f"v4 mode: {len(groups)} groups loaded: {groups}")
+            if v1_compat:
+                register_v3_compat_tools(self.mcp, module)
+                self.logger.info("v1-compat: registered deprecated v3 tool aliases")
         else:
             rmq_module = RabbitMQModule(self.mcp)
             rmq_module.default_management_port = management_port
@@ -86,6 +91,11 @@ def main():
         "--v4",
         action="store_true",
         help="Use v4 consolidated tools (28 tools instead of 59). Breaking change from v3.",
+    )
+    parser.add_argument(
+        "--v1-compat",
+        action="store_true",
+        help="(v4 only) Register deprecated v3 tool names as aliases for backward compatibility",
     )
     parser.add_argument(
         "--tool-groups",
@@ -139,6 +149,7 @@ def main():
         args.management_port,
         use_v4=args.v4,
         tool_groups=tool_groups,
+        v1_compat=args.v1_compat,
     )
 
     # Run the server with remaining args

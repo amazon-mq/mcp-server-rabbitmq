@@ -217,21 +217,29 @@ class RabbitMQModuleV4:
 
         @self.mcp.tool()
         def connections(
-            action: Literal["list", "channels"] = "list",
+            action: Literal["list", "channels", "churn", "close"] = "list",
+            name: str | None = None,
         ) -> Any:
-            """Connection operations. list: all connections. channels: all channels."""
+            """Connection operations. list: all connections. channels: all channels. churn: open/close rates. close: close a connection by name."""
             admin = self._get_admin()
             if action == "list":
                 return handle_list_connections(admin)
             if action == "channels":
                 return handle_list_channels(admin)
+            if action == "churn":
+                return handle_get_connection_churn(admin)
+            if action == "close":
+                if not name:
+                    raise ValueError("name required for close")
+                handle_close_connection(admin, name)
+                return "Connection closed"
 
         @self.mcp.tool()
         def cluster(
-            action: Literal["nodes", "node_info", "node_memory"] = "nodes",
+            action: Literal["nodes", "node_info", "node_memory", "rebalance"] = "nodes",
             node_name: str | None = None,
         ) -> Any:
-            """Cluster operations. nodes: list. node_info/node_memory: details for one node."""
+            """Cluster operations. nodes: list. node_info/node_memory: details for one node. rebalance: rebalance queue leaders across nodes."""
             admin = self._get_admin()
             if action == "nodes":
                 return handle_get_cluster_nodes(admin)
@@ -243,21 +251,20 @@ class RabbitMQModuleV4:
                 if not node_name:
                     raise ValueError("node_name required")
                 return handle_get_cluster_node_memory(admin, node_name)
+            if action == "rebalance":
+                handle_rebalance_queues(admin)
+                return "Rebalance initiated"
 
         @self.mcp.tool()
-        def vhosts() -> list:
-            """List all virtual hosts."""
-            return handle_list_vhosts(self._get_admin())
-
-        @self.mcp.tool()
-        def users() -> list:
-            """List all users."""
-            return handle_list_users(self._get_admin())
-
-        @self.mcp.tool()
-        def consumers() -> list:
-            """List all consumers."""
-            return handle_list_consumers(self._get_admin())
+        def entities(action: Literal["vhosts", "users", "consumers"]) -> list:
+            """List entities. vhosts: all virtual hosts. users: all users. consumers: all consumers."""
+            admin = self._get_admin()
+            if action == "vhosts":
+                return handle_list_vhosts(admin)
+            if action == "users":
+                return handle_list_users(admin)
+            if action == "consumers":
+                return handle_list_consumers(admin)
 
         @self.mcp.tool()
         def policies(
@@ -290,24 +297,32 @@ class RabbitMQModuleV4:
                 return handle_shovel(admin, name, vhost)
 
         @self.mcp.tool()
-        def overview() -> dict:
-            """Broker version, totals, rates, and listeners."""
-            return handle_get_broker_overview(self._get_admin())
+        def overview(action: Literal["summary", "definitions"] = "summary") -> dict:
+            """Broker overview. summary: version, totals, rates, listeners. definitions: full broker definitions (queues, exchanges, bindings, users, vhosts, permissions)."""
+            admin = self._get_admin()
+            if action == "summary":
+                return handle_get_broker_overview(admin)
+            if action == "definitions":
+                return handle_get_definition(admin)
 
         @self.mcp.tool()
-        def definitions() -> dict:
-            """Full broker definitions (queues, exchanges, bindings, users, vhosts, permissions)."""
-            return handle_get_definition(self._get_admin())
-
-        @self.mcp.tool()
-        def whoami() -> dict:
-            """Current authenticated user."""
-            return handle_whoami(self._get_admin())
-
-        @self.mcp.tool()
-        def permissions(vhost: str = "/", user: str = "guest") -> dict:
-            """Get permissions for a user in a vhost."""
-            return handle_get_permissions(self._get_admin(), vhost, user)
+        def auth(
+            action: Literal["whoami", "permissions", "set_permissions"] = "whoami",
+            vhost: str = "/",
+            user: str = "guest",
+            configure: str = ".*",
+            write: str = ".*",
+            read: str = ".*",
+        ) -> Any:
+            """Auth operations. whoami: current user. permissions: get permissions for user in vhost. set_permissions: set permissions (configure/write/read patterns)."""
+            admin = self._get_admin()
+            if action == "whoami":
+                return handle_whoami(admin)
+            if action == "permissions":
+                return handle_get_permissions(admin, vhost, user)
+            if action == "set_permissions":
+                handle_set_permissions(admin, vhost, user, configure, write, read)
+                return f"Permissions set for {user} in {vhost}"
 
     def _register_mutative(self):
         @self.mcp.tool()
@@ -427,25 +442,6 @@ class RabbitMQModuleV4:
                 result = handle_publish_message(self._get_admin(), target, routing_key, message, vhost, properties)
                 return f"Published via HTTP: {result}"
 
-        @self.mcp.tool()
-        def close_connection(name: str) -> str:
-            """Close a connection by name (from connections list)."""
-            handle_close_connection(self._get_admin(), name)
-            return f"Connection closed"
-
-        @self.mcp.tool()
-        def set_permissions(
-            vhost: str, user: str, configure: str = ".*", write: str = ".*", read: str = ".*"
-        ) -> str:
-            """Set permissions for a user in a vhost. Patterns are regex."""
-            handle_set_permissions(self._get_admin(), vhost, user, configure, write, read)
-            return f"Permissions set for {user} in {vhost}"
-
-        @self.mcp.tool()
-        def rebalance_queues() -> str:
-            """Rebalance queue leaders across cluster nodes."""
-            handle_rebalance_queues(self._get_admin())
-            return "Rebalance initiated"
 
     def _register_migration(self):
         @self.mcp.tool()
@@ -454,16 +450,17 @@ class RabbitMQModuleV4:
             return handle_export_definitions(self._get_admin(), transforms)
 
         @self.mcp.tool()
-        def definitions_import(definitions: dict) -> str:
-            """Import definitions to active broker (merges with existing)."""
-            handle_import_definitions(self._get_admin(), definitions)
+        def definitions_import(
+            definitions: dict,
+            partial: bool = False,
+        ) -> str:
+            """Import definitions to active broker. partial=False (default): full merge import. partial=True: upload a partial definition snippet (queues, exchanges, etc)."""
+            admin = self._get_admin()
+            if partial:
+                handle_update_definition(admin, definitions)
+                return "Updated (partial)"
+            handle_import_definitions(admin, definitions)
             return "Imported"
-
-        @self.mcp.tool()
-        def definitions_update(server_definition: dict) -> str:
-            """Upload a partial definition snippet (queues, exchanges, etc)."""
-            handle_update_definition(self._get_admin(), server_definition)
-            return "Updated"
 
         @self.mcp.tool()
         def definitions_compare(source_alias: str, target_alias: str) -> dict:
@@ -510,11 +507,6 @@ class RabbitMQModuleV4:
         ) -> list[dict]:
             """Find queues by threshold: depth, idle time, no consumers, unacked count."""
             return handle_find_queues_by_threshold(self._get_admin(), min_depth, min_idle_seconds, no_consumers, min_unacked, vhost)
-
-        @self.mcp.tool()
-        def connection_churn() -> dict:
-            """Connection and channel open/close rates."""
-            return handle_get_connection_churn(self._get_admin())
 
     def _register_health(self):
         @self.mcp.tool()
