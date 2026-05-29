@@ -12,10 +12,17 @@ from .auth import JWKSBearerVerifier
 
 from .constant import MCP_SERVER_VERSION
 from .rabbitmq.module import RabbitMQModule
+from .rabbitmq.module_v4 import RabbitMQModuleV4, TOOL_GROUPS
 
 
 class RabbitMQMCPServer:
-    def __init__(self, allow_mutative_tools: bool, management_port: int | None = None):
+    def __init__(
+        self,
+        allow_mutative_tools: bool,
+        management_port: int | None = None,
+        use_v4: bool = False,
+        tool_groups: tuple[str, ...] | None = None,
+    ):
         # Setup logger
         logger.remove()
         logger.add(sys.stderr, level=os.getenv("FASTMCP_LOG_LEVEL", "WARNING"))
@@ -27,9 +34,20 @@ class RabbitMQMCPServer:
             instructions="""Manage RabbitMQ message brokers and interact with queues and exchanges.""",
         )
 
-        rmq_module = RabbitMQModule(self.mcp)
-        rmq_module.default_management_port = management_port
-        rmq_module.register_rabbitmq_management_tools(allow_mutative_tools)
+        if use_v4:
+            groups = tool_groups or (
+                ("core", "read", "observability", "health")
+                if not allow_mutative_tools
+                else TOOL_GROUPS
+            )
+            module = RabbitMQModuleV4(self.mcp)
+            module.default_management_port = management_port
+            module.register_tools(groups)
+            self.logger.info(f"v4 mode: {len(groups)} groups loaded: {groups}")
+        else:
+            rmq_module = RabbitMQModule(self.mcp)
+            rmq_module.default_management_port = management_port
+            rmq_module.register_rabbitmq_management_tools(allow_mutative_tools)
 
     def run(self, args):
         """Run the MCP server with the provided arguments."""
@@ -63,6 +81,18 @@ def main():
         "--allow-mutative-tools",
         action="store_true",
         help="Enable tools that can mutate the states of RabbitMQ",
+    )
+    parser.add_argument(
+        "--v4",
+        action="store_true",
+        help="Use v4 consolidated tools (28 tools instead of 59). Breaking change from v3.",
+    )
+    parser.add_argument(
+        "--tool-groups",
+        nargs="*",
+        choices=list(TOOL_GROUPS),
+        default=None,
+        help="(v4 only) Selectively load tool groups: core, read, mutative, migration, observability, health",
     )
     # Streamable HTTP specific configuration
     parser.add_argument("--http", action="store_true", help="Use Streamable HTTP transport")
@@ -103,7 +133,13 @@ def main():
     args = parser.parse_args()
 
     # Create server with connection parameters from args
-    server = RabbitMQMCPServer(args.allow_mutative_tools, args.management_port)
+    tool_groups = tuple(args.tool_groups) if args.tool_groups else None
+    server = RabbitMQMCPServer(
+        args.allow_mutative_tools,
+        args.management_port,
+        use_v4=args.v4,
+        tool_groups=tool_groups,
+    )
 
     # Run the server with remaining args
     server.run(args)
