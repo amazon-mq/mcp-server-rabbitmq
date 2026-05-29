@@ -2,12 +2,44 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for RabbitMQ broker management and operations.
 
+## Status
+Active - v4.0.0-rc.1 (PR #51 submitted). 30 tools (28 consolidated + 2 standalone mutative) + 16 composable skills. Published to PyPI.
+
+## Goal
+Provide an open-source MCP server that enables AI agents to manage RabbitMQ brokers conversationally - supporting multi-broker connections, blue-green migration, health checks, and full observability.
+
+## Key Files
+- `src/server.py` - Main MCP server implementation
+- `src/auth.py` - Authentication (SIMPLE + OAuth)
+- `src/rabbitmq/module_v4.py` - v4 consolidated tool registration (28 enum-based dispatchers)
+- `src/rabbitmq/module.py` - v3 tool registration (59 tools, legacy)
+- `src/rabbitmq/compat_v3.py` - Deprecated v3 name aliases for --v1-compat
+- `pyproject.toml` - Package metadata and dependencies
+- `docker-compose.yml` - Local RabbitMQ for development
+- `example/` - Usage examples
+
+## Context
+**GitHub:** github.com/amazon-mq/mcp-server-rabbitmq
+**Package:** `amq-mcp-server-rabbitmq` on PyPI
+**Stack:** Python, FastMCP framework, uv package manager
+
+Mutative tools are gated behind `--allow-mutative-tools` flag (off by default). Supports both stdio and Streamable HTTP transports with JWKS auth for remote deployment.
+
+## Related Projects
+- [genai](../genai) - GTM strategy and blog for this server
+- [amqp-agent-protocol](../amqp-agent-protocol) - Protocol-level agent communication (complementary)
+- [kartographer](../kartographer) - Another MCP server in the org (internal)
+
+---
+
 ## Features
 
-- **61 tools** for broker management — connections, queues, exchanges, health checks, observability, and blue-green migration
-- **16 composable skills** — topology visualization, dead letter analysis, capacity planning, and more
-- **Multi-broker support** — connect multiple brokers simultaneously, switch between them by alias
+- **30 tools** (v4) or **59 tools** (v3) for broker management - connections, queues, exchanges, health checks, observability, and blue-green migration
+- **16 composable skills** - topology visualization, dead letter analysis, capacity planning, and more
+- **Multi-broker support** - connect multiple brokers simultaneously, switch between them by alias
 - **Mutative tools gated** behind `--allow-mutative-tools` flag (off by default for safety)
+- **Tool groups** - load only the tools you need with `--tool-groups`
+- **Security hardened** - SSRF protection, credential stripping, TLS warnings, JWKS HTTPS enforcement
 
 ## Quick Start
 
@@ -19,7 +51,24 @@ pip install amq-mcp-server-rabbitmq
 uv pip install amq-mcp-server-rabbitmq
 ```
 
-### Configure in Claude Desktop
+### Configure in Claude Desktop (v4 mode - recommended)
+
+```json
+{
+  "mcpServers": {
+    "rabbitmq": {
+      "command": "uvx",
+      "args": [
+        "amq-mcp-server-rabbitmq@latest",
+        "--v4",
+        "--allow-mutative-tools"
+      ]
+    }
+  }
+}
+```
+
+### Configure in Claude Desktop (v3 mode - legacy, 59 tools)
 
 ```json
 {
@@ -45,12 +94,37 @@ You: List all queues and show me which ones have messages backing up
 You: Create a dead letter exchange and bind it to the orders queue
 ```
 
+## v4 Mode
+
+v4 consolidates 59 individual tools into 28 enum-based dispatchers, reducing context window pressure while preserving full functionality. Each consolidated tool accepts an `action` parameter to select the operation.
+
+### Key Differences from v3
+
+| Aspect | v3 | v4 |
+|--------|----|----|
+| Tool count | 59 | 28 (+ 2 standalone mutative) |
+| Naming | `rabbitmq_broker_list_queues` | `queues(action="list")` |
+| Loading | All or nothing | Selectable via `--tool-groups` |
+| Compat | N/A | `--v1-compat` registers v3 aliases |
+
+### Standalone Mutative Tools
+
+Two tools remain standalone because they are high-impact operations that benefit from explicit invocation and additional confirmation:
+
+- `close_connection` - Close a specific connection by name
+- `rebalance_queues` - Rebalance queue leaders across cluster nodes
+
+These require the `mutative` tool group to be loaded.
+
 ## Configuration
 
 ### CLI Arguments
 
 | Argument | Description |
 |----------|-------------|
+| `--v4` | Enable v4 consolidated tool mode (28 tools instead of 59) |
+| `--tool-groups` | Select which tool groups to load (space-separated). Options: core, read, mutative, migration, observability, health |
+| `--v1-compat` | Register v3 tool name aliases alongside v4 tools (for migration) |
 | `--allow-mutative-tools` | Enable tools that can create, modify, or delete resources (default: off) |
 | `--management-port` | RabbitMQ Management API port (default: 443 for TLS, 15672 for non-TLS) |
 | `--http` | Use Streamable HTTP transport instead of stdio |
@@ -60,13 +134,26 @@ You: Create a dead letter exchange and bind it to the orders queue
 | `--http-auth-audience` | Audience for Bearer Auth Provider |
 | `--http-auth-required-scopes` | Required scopes for Bearer Auth Provider |
 
+### Tool Groups (v4)
+
+| Group | Tools | Gate |
+|-------|-------|------|
+| core | connect, connect_oauth, broker, get_skill, get_guideline | Always loaded |
+| read | queues, exchanges, connections, cluster, entities, overview, policies, shovels, auth | Always loaded |
+| mutative | manage_queue, manage_exchange, manage_binding, manage_policy, manage_vhost, publish, close_connection, rebalance_queues | Requires `--allow-mutative-tools` |
+| migration | definitions_export, definitions_import, definitions_compare, definitions_migrate, migration_readiness, federation_setup | Requires `--allow-mutative-tools` |
+| observability | find_queues | Always loaded |
+| health | health | Always loaded |
+
 ### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `FASTMCP_LOG_LEVEL` | Log level: DEBUG, INFO, WARNING (default), ERROR |
 
-## Tools
+## Tools (v3 layout)
+
+The following table shows the v3 tool names. In v4 mode, these are consolidated into 28 enum-based dispatchers (see the v4 Mode section above). Use `--v1-compat` to register these names alongside v4 tools.
 
 ### Connection and Session (6 tools)
 
@@ -191,7 +278,7 @@ You: Create a dead letter exchange and bind it to the orders queue
 
 ## Skills
 
-Skills are composable workflows accessed via `rabbitmq_broker_get_skill`. They guide the agent through multi-step operations by orchestrating existing tools — no additional code required.
+Skills are composable workflows accessed via `rabbitmq_broker_get_skill`. They guide the agent through multi-step operations by orchestrating existing tools - no additional code required.
 
 | Skill | What it does | Tools it composes |
 |-------|-------------|-------------------|
@@ -249,11 +336,17 @@ This starts RabbitMQ 4 with the management plugin on `localhost:5672` (AMQP) and
 
 ## Security
 
-- **Mutative tools disabled by default** — pass `--allow-mutative-tools` to opt in
-- **TLS by default** — connections use `use_tls=True` and port 5671 unless overridden
-- **OAuth support** — connect with access tokens instead of username/password
-- **HTTP transport with JWKS auth** — run as a remote server with Bearer token validation via configurable IdP
+- **Mutative tools disabled by default** - pass `--allow-mutative-tools` to opt in
+- **Mutative action gating** - high-impact operations (close_connection, rebalance_queues, set_permissions) require the mutative tool group to be loaded
+- **TLS by default** - connections use `use_tls=True` and port 5671 unless overridden
+- **TLS warnings** - non-TLS connections emit a warning in the response so agents can inform users
+- **SSRF protection** - hostname validation blocks connections to private/reserved IP ranges and localhost
+- **Credential stripping** - definition exports automatically strip passwords and sensitive keys before returning to the agent
+- **URL encoding** - all user-supplied names (queues, exchanges, vhosts) are URL-encoded before API calls to prevent injection
+- **JWKS HTTPS enforcement** - the `--http-auth-jwks-uri` flag rejects non-HTTPS URIs to prevent token validation bypass
+- **OAuth support** - connect with access tokens instead of username/password
+- **HTTP transport with JWKS auth** - run as a remote server with Bearer token validation via configurable IdP
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE) for details.
+Apache-2.0 - see [LICENSE](LICENSE) for details.
