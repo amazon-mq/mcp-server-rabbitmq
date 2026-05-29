@@ -7,14 +7,15 @@ import time
 from typing import Any
 
 import httpx
-from fastmcp.server.auth import AccessToken, TokenVerifier
+from mcp.server.auth.provider import AccessToken, TokenVerifier
 
 
-class JWKSBearerVerifier(TokenVerifier):
+class JWKSBearerVerifier:
     """JWT Bearer token verifier using JWKS for key discovery.
 
     Validates RS256-signed JWTs against a remote JWKS endpoint,
     with optional issuer and audience enforcement.
+    Implements the mcp.server.auth.provider.TokenVerifier protocol.
     """
 
     def __init__(
@@ -24,10 +25,10 @@ class JWKSBearerVerifier(TokenVerifier):
         audience: str | None = None,
         required_scopes: list[str] | None = None,
     ):
-        super().__init__(required_scopes=required_scopes)
         self.jwks_uri = jwks_uri
         self.issuer = issuer
         self.audience = audience
+        self.required_scopes = required_scopes
         self._jwks_cache: dict[str, Any] | None = None
         self._jwks_fetched_at: float = 0
         self._jwks_ttl: float = 300

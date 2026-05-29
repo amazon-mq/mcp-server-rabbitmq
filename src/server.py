@@ -61,7 +61,7 @@ class RabbitMQMCPServer:
         if args.http:
             if not args.http_auth_jwks_uri:
                 raise ValueError("Please set --http-auth-jwks-uri")
-            self.mcp.auth = JWKSBearerVerifier(
+            self.mcp._token_verifier = JWKSBearerVerifier(
                 jwks_uri=args.http_auth_jwks_uri,
                 issuer=args.http_auth_issuer,
                 audience=args.http_auth_audience,
