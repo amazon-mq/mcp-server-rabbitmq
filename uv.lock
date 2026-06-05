@@ -44,7 +44,7 @@ wheels = [
 
 [[package]]
 name = "amq-mcp-server-rabbitmq"
-version = "3.0.0rc1"
+version = "4.0.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "authlib" },
