@@ -309,24 +309,16 @@ class RabbitMQModuleV4:
 
         @self.mcp.tool()
         def auth(
-            action: Literal["whoami", "permissions", "set_permissions"] = "whoami",
+            action: Literal["whoami", "permissions"] = "whoami",
             vhost: str = "/",
             user: str = "guest",
-            configure: str = ".*",
-            write: str = ".*",
-            read: str = ".*",
         ) -> Any:
-            """Auth operations. whoami: current user. permissions: get permissions for user in vhost. set_permissions: set permissions (requires mutative group)."""
+            """Auth operations. whoami: current user. permissions: get permissions for user in vhost."""
             admin = self._get_admin()
             if action == "whoami":
                 return handle_whoami(admin)
             if action == "permissions":
                 return handle_get_permissions(admin, vhost, user)
-            if action == "set_permissions":
-                if not self._mutative_enabled:
-                    raise ValueError("set_permissions requires the 'mutative' tool group to be loaded")
-                handle_set_permissions(admin, vhost, user, configure, write, read)
-                return f"Permissions set for {user} in {vhost}"
 
     def _register_mutative(self):
         @self.mcp.tool()
@@ -454,6 +446,19 @@ class RabbitMQModuleV4:
             admin = self._get_admin()
             handle_close_connection(admin, name)
             return "Connection closed"
+
+        @self.mcp.tool()
+        def set_permissions(
+            vhost: str = "/",
+            user: str = "guest",
+            configure: str = ".*",
+            write: str = ".*",
+            read: str = ".*",
+        ) -> str:
+            """Set permissions for a user in a vhost. configure/write/read are regex patterns."""
+            admin = self._get_admin()
+            handle_set_permissions(admin, vhost, user, configure, write, read)
+            return f"Permissions set for {user} in {vhost}"
 
         @self.mcp.tool()
         def rebalance_queues() -> str:
