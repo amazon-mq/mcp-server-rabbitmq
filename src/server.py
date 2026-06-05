@@ -77,7 +77,7 @@ class RabbitMQMCPServer:
                 path="/mcp",
             )
         else:
-            self.logger.warning("Running in stdio mode - no authentication enforced")
+            self.logger.info("Running in stdio mode - no authentication enforced")
             self.mcp.run()
 
 
