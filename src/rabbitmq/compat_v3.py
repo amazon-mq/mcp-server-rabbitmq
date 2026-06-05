@@ -74,9 +74,9 @@ def register_v3_compat_tools(mcp: FastMCP, module: RabbitMQModuleV4) -> None:
     @mcp.tool()
     def rabbitmq_broker_is_in_alarm() -> Any:
         """DEPRECATED: use health(check='alarms') instead. Check if broker has active alarms."""
-        from .handlers import handle_check_local_alarms
+        from .handlers import handle_is_broker_in_alarm
 
-        return handle_check_local_alarms(module._get_admin())
+        return handle_is_broker_in_alarm(module._get_admin())
 
     @mcp.tool()
     def rabbitmq_broker_enqueue(queue_name: str, message: str) -> str:
