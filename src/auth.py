@@ -42,37 +42,65 @@ class JWKSBearerVerifier(TokenVerifier):
             self._jwks_fetched_at = time.time()
         return self._jwks_cache
 
+    def _invalidate_cache(self) -> None:
+        self._jwks_cache = None
+        self._jwks_fetched_at = 0
+
     async def verify_token(self, token: str) -> AccessToken | None:
+        import logging
+
         from authlib.jose import JsonWebKey, jwt as authlib_jwt
         from authlib.jose.errors import JoseError
 
+        logger = logging.getLogger(__name__)
+
         try:
-            jwks_data = await self._get_jwks()
-            keyset = JsonWebKey.import_key_set(jwks_data)
-
-            claims = authlib_jwt.decode(token, keyset)
-            claims.validate()
-
-            if self.issuer and claims.get("iss") != self.issuer:
+            return await self._attempt_verify(token, authlib_jwt, JsonWebKey)
+        except JoseError as e:
+            logger.debug("Auth verification failed, retrying with refreshed JWKS: %s", e)
+            self._invalidate_cache()
+            try:
+                return await self._attempt_verify(token, authlib_jwt, JsonWebKey)
+            except JoseError as e2:
+                logger.debug("Auth rejected after JWKS refresh: %s", e2)
                 return None
-            if self.audience:
-                aud = claims.get("aud")
-                if isinstance(aud, list):
-                    if self.audience not in aud:
-                        return None
-                elif aud != self.audience:
-                    return None
-
-            token_scopes = claims.get("scope", "").split() if claims.get("scope") else []
-            if self.required_scopes:
-                if not all(s in token_scopes for s in self.required_scopes):
-                    return None
-
-            return AccessToken(
-                token=token,
-                client_id=claims.get("client_id", claims.get("sub", "unknown")),
-                scopes=token_scopes,
-                claims=dict(claims),
-            )
-        except (JoseError, httpx.HTTPError, KeyError, ValueError):
+        except (httpx.HTTPError, KeyError, ValueError) as e:
+            logger.debug("Auth rejected: %s", e)
             return None
+
+    async def _attempt_verify(self, token: str, authlib_jwt: Any, JsonWebKey: Any) -> AccessToken | None:
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        jwks_data = await self._get_jwks()
+        keyset = JsonWebKey.import_key_set(jwks_data)
+
+        claims = authlib_jwt.decode(token, keyset)
+        claims.validate()
+
+        if self.issuer and claims.get("iss") != self.issuer:
+            logger.debug("Auth rejected: issuer mismatch (expected=%s, got=%s)", self.issuer, claims.get("iss"))
+            return None
+        if self.audience:
+            aud = claims.get("aud")
+            if isinstance(aud, list):
+                if self.audience not in aud:
+                    logger.debug("Auth rejected: audience %s not in %s", self.audience, aud)
+                    return None
+            elif aud != self.audience:
+                logger.debug("Auth rejected: audience mismatch (expected=%s, got=%s)", self.audience, aud)
+                return None
+
+        token_scopes = claims.get("scope", "").split() if claims.get("scope") else []
+        if self.required_scopes:
+            if not all(s in token_scopes for s in self.required_scopes):
+                logger.debug("Auth rejected: missing scopes (required=%s, got=%s)", self.required_scopes, token_scopes)
+                return None
+
+        return AccessToken(
+            token=token,
+            client_id=claims.get("client_id", claims.get("sub", "unknown")),
+            scopes=token_scopes,
+            claims=dict(claims),
+        )
