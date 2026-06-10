@@ -14,6 +14,7 @@
 # This file is part of the awslabs namespace.
 # It is intentionally minimal to support PEP 420 namespace packages.
 
+import os
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -104,6 +105,55 @@ class RabbitMQModule:
         self.__register_read_only_tools()
         if allow_mutative_tools:
             self.__register_mutative_tools()
+        self._auto_connect_from_env()
+
+    def _auto_connect_from_env(self) -> None:
+        """Connect to a broker at startup if RABBITMQ_* env vars are present.
+
+        In some MCP aggregator setups the server subprocess does not stay
+        running between calls, so connection state set via
+        initialize_connection does not persist. Configuring credentials
+        through the environment makes the tools usable on every spawn.
+
+        Env vars:
+            RABBITMQ_HOST            – broker hostname (required)
+            RABBITMQ_USERNAME        – auth username   (required)
+            RABBITMQ_PASSWORD        – auth password   (required)
+            RABBITMQ_PORT            – AMQP port       (default: 5671)
+            RABBITMQ_MANAGEMENT_PORT – management API port; falls back to
+                                       --management-port CLI arg, then to
+                                       443 / 15672 depending on TLS
+            RABBITMQ_USE_TLS         – "true" or "false" (default: "true")
+            RABBITMQ_ALIAS           – broker alias    (default: hostname)
+        """
+        host = os.environ.get("RABBITMQ_HOST", "")
+        user = os.environ.get("RABBITMQ_USERNAME", "")
+        pw = os.environ.get("RABBITMQ_PASSWORD", "")
+        if not (host and user and pw):
+            return
+        port = int(os.environ.get("RABBITMQ_PORT", "5671") or "5671")
+        mgmt_port_str = os.environ.get("RABBITMQ_MANAGEMENT_PORT", "")
+        mgmt_port = int(mgmt_port_str) if mgmt_port_str else self.default_management_port
+        use_tls = os.environ.get("RABBITMQ_USE_TLS", "true").lower() in ("true", "1", "yes")
+        try:
+            rmq = RabbitMQConnection(
+                hostname=host, username=user, password=pw,
+                port=port, use_tls=use_tls,
+            )
+            rmq_admin = RabbitMQAdmin(
+                hostname=host, username=user, password=pw,
+                use_tls=use_tls, port=mgmt_port,
+            )
+            rmq_admin.test_connection()
+            alias = os.environ.get("RABBITMQ_ALIAS", host)
+            self.brokers[alias] = {
+                "rmq": rmq,
+                "rmq_admin": rmq_admin,
+                "hostname": host,
+            }
+            self.active_alias = alias
+        except Exception:
+            pass  # Fall back to manual initialization via tool call
 
     def __register_critical_tools(self):
         @self.mcp.tool()
