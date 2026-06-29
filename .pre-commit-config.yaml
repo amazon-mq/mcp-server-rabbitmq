@@ -1,0 +1,40 @@
+# Pre-commit hooks.
+# Install: uv sync --dev && pre-commit install
+# Run manually: pre-commit run --all-files
+
+default_language_version:
+  python: python3.10
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^uv\.lock$
+      - id: end-of-file-fixer
+        exclude: ^uv\.lock$
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+  # Just using uv run so hook ver matches uv.lock.
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+
+      - id: pytest
+        name: pytest
+        entry: uv run pytest src/tests/
+        language: system
+        pass_filenames: false

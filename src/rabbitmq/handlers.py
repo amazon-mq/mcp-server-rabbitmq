@@ -44,7 +44,7 @@ def handle_get_guidelines(guideline_name: str):
     if not filename:
         available = ", ".join(guidelines.keys())
         raise ValueError(f"'{guideline_name}' doesn't exist. Available: {available}")
-    return (script_dir / "doc" / filename).read_text()
+    return (script_dir / "doc" / filename).read_text(encoding="utf-8")
 
 
 ################################################

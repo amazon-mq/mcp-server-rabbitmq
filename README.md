@@ -12,7 +12,7 @@ Supports connecting to multiple RabbitMQ brokers within a single session, allowi
 ### OAuth authentication support
 Connect to RabbitMQ brokers using OAuth tokens for secure, token-based authentication.
 
-### Supports streamable HTTP with FastMCP's `BearerAuthProvider`
+### Supports streamable HTTP with FastMCP's `JWTVerifier`
 You can start a remote RabbitMQ MCP server by configuring your own IdP and 3rd party authorization provider.
 
 ### Seamless integration with MCP clients
@@ -68,10 +68,10 @@ Use uvx directly in your MCP client config
 - `--allow-mutative-tools`: Enable tools that can mutate the states of RabbitMQ. Default is false.
 - `--http`: Use Streamable HTTP transport instead of stdio.
 - `--server-port`: Port to run the MCP server on (default: 8888).
-- `--http-auth-jwks-uri`: JWKS URI for FastMCP Bearer Auth Provider.
-- `--http-auth-issuer`: Issuer for FastMCP Bearer Auth Provider.
-- `--http-auth-audience`: Audience for FastMCP Bearer Auth Provider.
-- `--http-auth-required-scopes`: Required scopes for FastMCP Bearer Auth Provider.
+- `--http-auth-jwks-uri`: JWKS URI for FastMCP JWTVerifier.
+- `--http-auth-issuer`: Issuer for FastMCP JWTVerifier.
+- `--http-auth-audience`: Audience for FastMCP JWTVerifier.
+- `--http-auth-required-scopes`: Required scopes for FastMCP JWTVerifier.
 
 ## Usage Examples
 
@@ -94,7 +94,7 @@ stdio_mcp_client = MCPClient(lambda: stdio_client(
 with stdio_mcp_client:
     tools = stdio_mcp_client.list_tools_sync()
     agent = Agent(tools=tools)
-    
+
     while True:
         user_input = input("\nYou: ").strip()
         if not user_input or user_input.lower() in ["exit", "quit"]:
