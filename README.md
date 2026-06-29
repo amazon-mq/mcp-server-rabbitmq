@@ -94,7 +94,7 @@ stdio_mcp_client = MCPClient(lambda: stdio_client(
 with stdio_mcp_client:
     tools = stdio_mcp_client.list_tools_sync()
     agent = Agent(tools=tools)
-    
+
     while True:
         user_input = input("\nYou: ").strip()
         if not user_input or user_input.lower() in ["exit", "quit"]:
