@@ -13,6 +13,18 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      pip:
+      # Patch and minor updates are grouped into one PR and auto-merged
+      # (see .github/workflows/dependabot-auto-merge.yml) once CI passes.
+      pip-minor-patch:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Major updates each get their own PR for manual review, since they
+      # may carry breaking changes.
+      pip-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"

@@ -13,6 +13,17 @@ A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for Rab
 - **Tool groups** - load only the tools you need with `--tool-groups`
 - **Security hardened** - SSRF protection, credential stripping, TLS warnings, JWKS HTTPS enforcement
 
+## Versions
+
+The server ships two tool layouts so you can choose your upgrade path:
+
+| Version | Layout | Upgrade impact | Choose it when |
+|---------|--------|----------------|----------------|
+| **v3** (`3.x`) | 61 tools, one per operation (e.g. `rabbitmq_broker_list_queues`). All v2.x tool names preserved. | **Non-breaking** - a drop-in upgrade from v2.x. | You have existing prompts/integrations bound to v2/v3 tool names and want zero churn. |
+| **v4** (`4.x`) | 31 enum-based dispatchers (e.g. `queues(action="list")`), selectable via `--tool-groups`. | **Breaking** - tool names change (opt in with `--v4`). `--v1-compat` re-registers v3 aliases to ease migration. | You want lower context-window usage and per-group tool loading. |
+
+Both are published from this repo. v4 defaults to v3 behavior unless you pass `--v4`, so installing the latest package never breaks an existing setup on its own. See [v4 Mode](#v4-mode) for the full mapping and the [CHANGELOG](CHANGELOG.md) for the v3 → v4 tool-name table.
+
 ## Quick Start
 
 ### Install via PyPI

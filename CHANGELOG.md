@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.0.0
+
+First stable release of the v4 consolidated tool layout. Functionally identical to `4.0.0-rc.1`
+below; promoted to final. v4 defaults to v3 behavior unless `--v4` is passed, so upgrading the
+package does not change tool names on its own. Includes the security-hardening dependency bumps
+(mcp, cryptography, starlette, pyjwt, python-multipart) that closed all open Dependabot advisories.
+
+See the v3 → v4 tool-name mapping in the `4.0.0-rc.1` section below.
+
+## 3.0.0
+
+Non-breaking upgrade from the v2.x line: adds multi-broker management, observability tools,
+16 composable skills, blue-green migration, and HTTP transport with JWKS Bearer auth, while
+**preserving all v2.x tool names**. This is the drop-in option for integrations bound to the
+one-tool-per-operation layout (61 tools). See [docs/](docs/) for the feature guides.
+
 ## 4.0.0-rc.1 (2026-05-29)
 
 ### Breaking Changes

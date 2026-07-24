@@ -32,12 +32,7 @@ jobs:
         run: uv sync --frozen --all-extras --dev
 
       - name: Run tests
-        run: |
-          if [ -d "tests" ]; then
-            uv run pytest
-          else
-            echo "No tests directory found, skipping tests"
-          fi
+        run: uv run pytest
 
       - name: Run pyright
         run: uv run pyright
@@ -51,7 +46,10 @@ jobs:
       - name: Run bandit security check
         run: |
           uv pip install bandit[toml]
-          uv run bandit -r -c pyproject.toml mcp_server_rabbitmq/
+          uv run bandit -r -c pyproject.toml src/
+
+      - name: Run pip-audit (dependency vulnerabilities)
+        run: uv run --with pip-audit pip-audit
 
       - name: Build package
         run: uv build

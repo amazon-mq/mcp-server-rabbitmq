@@ -82,7 +82,7 @@ def obfuscate_credentials(definitions: dict) -> dict:
     """Replace usernames and password hashes with dummy values."""
     for i, user in enumerate(definitions.get("users", [])):
         user["name"] = f"user_{i}"
-        user["password_hash"] = "REDACTED"
+        user["password_hash"] = "REDACTED"  # nosec B105 - redaction placeholder, not a secret
         if "hashing_algorithm" in user:
             user["hashing_algorithm"] = "rabbit_password_hashing_sha256"
     return definitions
