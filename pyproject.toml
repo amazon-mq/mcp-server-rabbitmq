@@ -1,6 +1,6 @@
 [project]
 name = "amq-mcp-server-rabbitmq"
-version = "4.0.0-rc.1"
+version = "4.0.0"
 description = "A Model Context Protocol server providing access to RabbitMQ by LLMs"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -9,7 +9,7 @@ maintainers = [{ name = "Ken Liao", email = "kenliao94@gmail.com" }]
 keywords = ["rabbitmq", "mcp", "llm", "automation"]
 license = { text = "Apache-2.0" }
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
@@ -45,8 +45,8 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
-[tool.uv]
-dev-dependencies = ["pyright>=1.1.389", "ruff>=0.7.3", "pytest>=8.3.5"]
+[dependency-groups]
+dev = ["pyright>=1.1.389", "ruff>=0.7.3", "pytest>=8.3.5"]
 
 [tool.uv.workspace]
 members = ["example/agent_strands"]
@@ -61,7 +61,7 @@ select = ["E", "F", "I", "B", "Q"]
 ignore = ["E203", "E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["mcp_server_rabbitmq"]
+known-first-party = ["src"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -69,7 +69,7 @@ indent-style = "space"
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src/tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -79,7 +79,7 @@ exclude_dirs = ["tests", ".venv"]
 skips = ["B101"]
 
 [tool.pyright]
-include = ["mcp_server_rabbitmq"]
+include = ["src"]
 exclude = ["**/__pycache__", ".venv"]
 typeCheckingMode = "basic"
 pythonVersion = "3.10"

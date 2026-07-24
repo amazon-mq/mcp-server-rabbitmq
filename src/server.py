@@ -69,11 +69,13 @@ class RabbitMQMCPServer:
         self.logger.info(f"Starting RabbitMQ MCP Server v{MCP_SERVER_VERSION}")
 
         if args.http:
+            # host/port/path are forwarded via FastMCP.run(**transport_kwargs)
+            # to the transport; pyright can't see them on the run() signature.
             self.mcp.run(
                 transport="streamable-http",
-                host="127.0.0.1",
-                port=args.server_port,
-                path="/mcp",
+                host="127.0.0.1",  # pyright: ignore[reportCallIssue]
+                port=args.server_port,  # pyright: ignore[reportCallIssue]
+                path="/mcp",  # pyright: ignore[reportCallIssue]
             )
         else:
             self.logger.info("Running in stdio mode - no authentication enforced")
