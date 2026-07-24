@@ -5,15 +5,14 @@ import argparse
 import os
 import sys
 
-from mcp.server.fastmcp import FastMCP
 from loguru import logger
+from mcp.server.fastmcp import FastMCP
 
 from .auth import JWKSBearerVerifier
-
 from .constant import MCP_SERVER_VERSION
 from .rabbitmq.compat_v3 import register_v3_compat_tools
 from .rabbitmq.module import RabbitMQModule
-from .rabbitmq.module_v4 import RabbitMQModuleV4, TOOL_GROUPS
+from .rabbitmq.module_v4 import TOOL_GROUPS, RabbitMQModuleV4
 
 
 class RabbitMQMCPServer:

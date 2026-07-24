@@ -18,8 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.rabbitmq.module_v4 import RabbitMQModuleV4, TOOL_GROUPS
-
+from src.rabbitmq.module_v4 import TOOL_GROUPS, RabbitMQModuleV4
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -37,6 +36,7 @@ def mock_mcp():
         def decorator(fn):
             registered[fn.__name__] = fn
             return fn
+
         return decorator
 
     # Support both @mcp.tool() and @mcp.tool (no parens)
@@ -174,13 +174,13 @@ class TestQueuesDispatcher:
     @patch("src.rabbitmq.module_v4.handle_get_messages")
     def test_queues_messages(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = [{"payload": "hello"}]
-        result = tools["queues"](action="messages", name="q1", vhost="/", count=1)
+        tools["queues"](action="messages", name="q1", vhost="/", count=1)
         mock_handler.assert_called_once_with(mock_admin, "q1", "/", 1)
 
     @patch("src.rabbitmq.module_v4.handle_get_bindings")
     def test_queues_bindings(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = []
-        result = tools["queues"](action="bindings", name="q1", vhost="/")
+        tools["queues"](action="bindings", name="q1", vhost="/")
         mock_handler.assert_called_once_with(mock_admin, queue="q1", vhost="/")
 
     def test_queues_info_missing_name_raises(self, tools):
@@ -201,19 +201,19 @@ class TestExchangesDispatcher:
     @patch("src.rabbitmq.module_v4.handle_list_exchanges_by_vhost")
     def test_exchanges_list(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = [{"name": "ex1"}]
-        result = tools["exchanges"](action="list", vhost="/")
+        tools["exchanges"](action="list", vhost="/")
         mock_handler.assert_called_once_with(mock_admin, "/")
 
     @patch("src.rabbitmq.module_v4.handle_get_exchange_info")
     def test_exchanges_info(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = {"name": "ex1", "type": "direct"}
-        result = tools["exchanges"](action="info", name="ex1", vhost="/")
+        tools["exchanges"](action="info", name="ex1", vhost="/")
         mock_handler.assert_called_once_with(mock_admin, "ex1", "/")
 
     @patch("src.rabbitmq.module_v4.handle_get_bindings")
     def test_exchanges_bindings(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = []
-        result = tools["exchanges"](action="bindings", name="ex1", vhost="/")
+        tools["exchanges"](action="bindings", name="ex1", vhost="/")
         mock_handler.assert_called_once_with(mock_admin, exchange="ex1", vhost="/")
 
     def test_exchanges_info_missing_name_raises(self, tools):
@@ -230,25 +230,25 @@ class TestHealthDispatcher:
     @patch("src.rabbitmq.module_v4.handle_check_local_alarms")
     def test_health_alarms(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = {"status": "ok"}
-        result = tools["health"](check="alarms")
+        tools["health"](check="alarms")
         mock_handler.assert_called_once_with(mock_admin)
 
     @patch("src.rabbitmq.module_v4.handle_is_node_in_quorum_critical")
     def test_health_quorum(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = False
-        result = tools["health"](check="quorum")
+        tools["health"](check="quorum")
         mock_handler.assert_called_once_with(mock_admin)
 
     @patch("src.rabbitmq.module_v4.handle_check_certificate_expiration")
     def test_health_certificates(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = {"expiring_soon": []}
-        result = tools["health"](check="certificates", within=30, unit="days")
+        tools["health"](check="certificates", within=30, unit="days")
         mock_handler.assert_called_once_with(mock_admin, 30, "days")
 
     @patch("src.rabbitmq.module_v4.handle_check_protocol_listener")
     def test_health_protocol(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = True
-        result = tools["health"](check="protocol", protocol="amqp")
+        tools["health"](check="protocol", protocol="amqp")
         mock_handler.assert_called_once_with(mock_admin, "amqp")
 
     def test_health_protocol_missing_raises(self, tools):
@@ -258,19 +258,19 @@ class TestHealthDispatcher:
     @patch("src.rabbitmq.module_v4.handle_check_virtual_hosts")
     def test_health_vhosts(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = {"healthy": True}
-        result = tools["health"](check="vhosts")
+        tools["health"](check="vhosts")
         mock_handler.assert_called_once_with(mock_admin)
 
     @patch("src.rabbitmq.module_v4.handle_list_feature_flags")
     def test_health_features(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = []
-        result = tools["health"](check="features")
+        tools["health"](check="features")
         mock_handler.assert_called_once_with(mock_admin)
 
     @patch("src.rabbitmq.module_v4.handle_list_deprecated_features")
     def test_health_deprecated(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = []
-        result = tools["health"](check="deprecated")
+        tools["health"](check="deprecated")
         mock_handler.assert_called_once_with(mock_admin)
 
 
@@ -284,17 +284,29 @@ class TestManageQueueDispatcher:
     @patch("src.rabbitmq.module_v4.validate_rabbitmq_name")
     def test_manage_queue_create(self, mock_validate, mock_handler, tools, mock_admin):
         result = tools["manage_queue"](
-            action="create", name="test-q", vhost="/", queue_type="quorum", durable=True, arguments=None
+            action="create",
+            name="test-q",
+            vhost="/",
+            queue_type="quorum",
+            durable=True,
+            arguments=None,
         )
         mock_validate.assert_called_once_with("test-q", "Queue name")
-        mock_handler.assert_called_once_with(mock_admin, "test-q", "/", "quorum", True, False, None)
+        mock_handler.assert_called_once_with(
+            mock_admin, "test-q", "/", "quorum", True, False, None
+        )
         assert "created" in result
 
     @patch("src.rabbitmq.module_v4.handle_delete_queue")
     @patch("src.rabbitmq.module_v4.validate_rabbitmq_name")
     def test_manage_queue_delete(self, mock_validate, mock_handler, tools, mock_admin):
         result = tools["manage_queue"](
-            action="delete", name="test-q", vhost="/", queue_type="quorum", durable=True, arguments=None
+            action="delete",
+            name="test-q",
+            vhost="/",
+            queue_type="quorum",
+            durable=True,
+            arguments=None,
         )
         mock_handler.assert_called_once_with(mock_admin, "test-q", "/")
         assert "deleted" in result
@@ -303,7 +315,12 @@ class TestManageQueueDispatcher:
     @patch("src.rabbitmq.module_v4.validate_rabbitmq_name")
     def test_manage_queue_purge(self, mock_validate, mock_handler, tools, mock_admin):
         result = tools["manage_queue"](
-            action="purge", name="test-q", vhost="/", queue_type="quorum", durable=True, arguments=None
+            action="purge",
+            name="test-q",
+            vhost="/",
+            queue_type="quorum",
+            durable=True,
+            arguments=None,
         )
         mock_handler.assert_called_once_with(mock_admin, "test-q", "/")
         assert "purged" in result
@@ -318,8 +335,12 @@ class TestPublishDispatcher:
     @patch("src.rabbitmq.module_v4.handle_enqueue")
     def test_publish_amqp_queue(self, mock_handler, tools, mock_rmq):
         result = tools["publish"](
-            method="amqp_queue", target="my-queue", message="hello",
-            routing_key="", vhost="/", properties=None
+            method="amqp_queue",
+            target="my-queue",
+            message="hello",
+            routing_key="",
+            vhost="/",
+            properties=None,
         )
         mock_handler.assert_called_once_with(mock_rmq, "my-queue", "hello")
         assert "queue" in result.lower()
@@ -327,8 +348,12 @@ class TestPublishDispatcher:
     @patch("src.rabbitmq.module_v4.handle_fanout")
     def test_publish_amqp_fanout(self, mock_handler, tools, mock_rmq):
         result = tools["publish"](
-            method="amqp_fanout", target="my-exchange", message="hello",
-            routing_key="", vhost="/", properties=None
+            method="amqp_fanout",
+            target="my-exchange",
+            message="hello",
+            routing_key="",
+            vhost="/",
+            properties=None,
         )
         mock_handler.assert_called_once_with(mock_rmq, "my-exchange", "hello")
         assert "fanout" in result.lower()
@@ -337,8 +362,12 @@ class TestPublishDispatcher:
     def test_publish_http(self, mock_handler, tools, mock_admin):
         mock_handler.return_value = {"routed": True}
         result = tools["publish"](
-            method="http", target="my-exchange", message="hello",
-            routing_key="rk", vhost="/", properties={"content_type": "text/plain"}
+            method="http",
+            target="my-exchange",
+            message="hello",
+            routing_key="rk",
+            vhost="/",
+            properties={"content_type": "text/plain"},
         )
         mock_handler.assert_called_once_with(
             mock_admin, "my-exchange", "rk", "hello", "/", {"content_type": "text/plain"}
@@ -365,15 +394,25 @@ class TestErrorCases:
     def test_manage_policy_create_missing_definition_raises(self, tools):
         with pytest.raises(ValueError, match="definition required"):
             tools["manage_policy"](
-                action="create", name="p1", pattern=".*",
-                definition=None, vhost="/", priority=0, apply_to="all"
+                action="create",
+                name="p1",
+                pattern=".*",
+                definition=None,
+                vhost="/",
+                priority=0,
+                apply_to="all",
             )
 
     def test_manage_binding_delete_missing_props_key_raises(self, tools):
         with pytest.raises(ValueError, match="props_key required"):
             tools["manage_binding"](
-                action="delete", exchange="ex", queue="q",
-                routing_key="", vhost="/", props_key=None, arguments=None
+                action="delete",
+                exchange="ex",
+                queue="q",
+                routing_key="",
+                vhost="/",
+                props_key=None,
+                arguments=None,
             )
 
     def test_cluster_node_info_missing_name_raises(self, tools):

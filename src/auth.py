@@ -7,7 +7,7 @@ import time
 from typing import Any
 
 import httpx
-from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.provider import AccessToken
 
 
 class JWKSBearerVerifier:
@@ -54,7 +54,8 @@ class JWKSBearerVerifier:
         return self._jwks_cache
 
     async def verify_token(self, token: str) -> AccessToken | None:
-        from authlib.jose import JsonWebKey, jwt as authlib_jwt
+        from authlib.jose import JsonWebKey
+        from authlib.jose import jwt as authlib_jwt
         from authlib.jose.errors import JoseError
 
         try:

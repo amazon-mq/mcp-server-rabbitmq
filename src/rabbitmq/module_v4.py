@@ -44,8 +44,8 @@ from .handlers import (
     handle_find_queues_by_threshold,
     handle_get_bindings,
     handle_get_broker_overview,
-    handle_get_cluster_nodes,
     handle_get_cluster_node_memory,
+    handle_get_cluster_nodes,
     handle_get_connection_churn,
     handle_get_definition,
     handle_get_exchange_info,
@@ -57,17 +57,14 @@ from .handlers import (
     handle_get_queue_info,
     handle_get_skill,
     handle_import_definitions,
-    handle_is_broker_in_alarm,
     handle_is_node_in_quorum_critical,
     handle_list_channels,
     handle_list_connections,
     handle_list_consumers,
     handle_list_deprecated_features,
-    handle_list_exchanges,
     handle_list_exchanges_by_vhost,
     handle_list_feature_flags,
     handle_list_policies,
-    handle_list_queues,
     handle_list_queues_by_vhost,
     handle_list_shovels,
     handle_list_users,
@@ -81,7 +78,6 @@ from .handlers import (
     handle_update_definition,
     handle_whoami,
 )
-
 
 TOOL_GROUPS = ("core", "read", "mutative", "migration", "observability", "health")
 
@@ -139,12 +135,20 @@ class RabbitMQModuleV4:
             """Connect to a RabbitMQ broker. Use alias to manage multiple brokers (e.g. 'blue', 'green')."""
             validate_hostname(hostname)
             alias = alias or hostname
-            rmq = RabbitMQConnection(hostname=hostname, username=username, password=password, port=port, use_tls=use_tls)
-            rmq_admin = RabbitMQAdmin(hostname=hostname, username=username, password=password, use_tls=use_tls, port=self.default_management_port)
+            rmq = RabbitMQConnection(
+                hostname=hostname, username=username, password=password, port=port, use_tls=use_tls
+            )
+            rmq_admin = RabbitMQAdmin(
+                hostname=hostname,
+                username=username,
+                password=password,
+                use_tls=use_tls,
+                port=self.default_management_port,
+            )
             try:
                 rmq_admin.test_connection()
             except Exception as e:
-                raise ValueError(f"Failed to connect to {hostname}: {e}")
+                raise ValueError(f"Failed to connect to {hostname}: {e}") from e
             self.brokers[alias] = {"rmq": rmq, "rmq_admin": rmq_admin, "hostname": hostname}
             self.active_alias = alias
             return f"Connected to {hostname} as '{alias}'"
@@ -155,11 +159,16 @@ class RabbitMQModuleV4:
             validate_hostname(hostname)
             alias = alias or hostname
             rmq = RabbitMQConnection(hostname=hostname, username="", password=oauth_token)
-            rmq_admin = RabbitMQAdmin(hostname=hostname, username="", password=oauth_token, port=self.default_management_port)
+            rmq_admin = RabbitMQAdmin(
+                hostname=hostname,
+                username="",
+                password=oauth_token,
+                port=self.default_management_port,
+            )
             try:
                 rmq_admin.test_connection()
             except Exception as e:
-                raise ValueError(f"Failed to connect to {hostname}: {e}")
+                raise ValueError(f"Failed to connect to {hostname}: {e}") from e
             self.brokers[alias] = {"rmq": rmq, "rmq_admin": rmq_admin, "hostname": hostname}
             self.active_alias = alias
             return f"Connected to {hostname} as '{alias}'"
@@ -168,7 +177,10 @@ class RabbitMQModuleV4:
         def broker(action: Literal["select", "list"], alias: str | None = None) -> Any:
             """Manage broker connections. select: switch active broker. list: show all."""
             if action == "list":
-                return [{"alias": a, "hostname": i["hostname"], "active": a == self.active_alias} for a, i in self.brokers.items()]
+                return [
+                    {"alias": a, "hostname": i["hostname"], "active": a == self.active_alias}
+                    for a, i in self.brokers.items()
+                ]
             if action == "select":
                 if not alias or alias not in self.brokers:
                     raise ValueError(f"Unknown alias. Available: {', '.join(self.brokers.keys())}")
@@ -356,7 +368,9 @@ class RabbitMQModuleV4:
             admin = self._get_admin()
             validate_rabbitmq_name(name, "Exchange name")
             if action == "create":
-                handle_create_exchange(admin, name, exchange_type, vhost, durable, False, arguments)
+                handle_create_exchange(
+                    admin, name, exchange_type, vhost, durable, False, arguments
+                )
                 return f"Exchange {name} created ({exchange_type})"
             if action == "delete":
                 handle_delete_exchange(admin, name, vhost)
@@ -435,7 +449,9 @@ class RabbitMQModuleV4:
                 handle_fanout(self._get_rmq(), target, message)
                 return f"Published to fanout {target}"
             if method == "http":
-                result = handle_publish_message(self._get_admin(), target, routing_key, message, vhost, properties)
+                result = handle_publish_message(
+                    self._get_admin(), target, routing_key, message, vhost, properties
+                )
                 return f"Published via HTTP: {result}"
 
         @self.mcp.tool()
@@ -518,7 +534,9 @@ class RabbitMQModuleV4:
             upstream_name: str, upstream_uri: str, vhost: str = "/", policy_pattern: str = ".*"
         ) -> dict:
             """Set up federation upstream and policy for message draining."""
-            return handle_setup_federation(self._get_admin(), upstream_name, upstream_uri, vhost, policy_pattern)
+            return handle_setup_federation(
+                self._get_admin(), upstream_name, upstream_uri, vhost, policy_pattern
+            )
 
     def _register_observability(self):
         @self.mcp.tool()
@@ -530,12 +548,16 @@ class RabbitMQModuleV4:
             vhost: str = "/",
         ) -> list[dict]:
             """Find queues by threshold: depth, idle time, no consumers, unacked count."""
-            return handle_find_queues_by_threshold(self._get_admin(), min_depth, min_idle_seconds, no_consumers, min_unacked, vhost)
+            return handle_find_queues_by_threshold(
+                self._get_admin(), min_depth, min_idle_seconds, no_consumers, min_unacked, vhost
+            )
 
     def _register_health(self):
         @self.mcp.tool()
         def health(
-            check: Literal["alarms", "quorum", "certificates", "protocol", "vhosts", "features", "deprecated"],
+            check: Literal[
+                "alarms", "quorum", "certificates", "protocol", "vhosts", "features", "deprecated"
+            ],
             protocol: str | None = None,
             within: int = 30,
             unit: str = "days",

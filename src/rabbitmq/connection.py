@@ -30,7 +30,9 @@ class RabbitMQConnection:
     ):
         """Initialize RabbitMQ connection parameters."""
         if not use_tls:
-            logger.warning("Connecting to broker without TLS - credentials will be sent in plaintext")
+            logger.warning(
+                "Connecting to broker without TLS - credentials will be sent in plaintext"
+            )
         credentials = pika.PlainCredentials(username, password)
         ssl_options = None
         if use_tls:
@@ -87,9 +89,7 @@ def validate_hostname(hostname: str) -> None:
 
     # IPv4 link-local metadata endpoint: 169.254.169.254
     if addr == ipaddress.ip_address("169.254.169.254"):
-        raise ValueError(
-            f"Hostname {hostname} is the cloud metadata endpoint and is not allowed"
-        )
+        raise ValueError(f"Hostname {hostname} is the cloud metadata endpoint and is not allowed")
 
     # IPv4 link-local: 169.254.0.0/16
     if addr.is_link_local:

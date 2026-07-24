@@ -103,9 +103,11 @@ def register_v3_compat_tools(mcp: FastMCP, module: RabbitMQModuleV4) -> None:
         arguments: dict | None = None,
     ) -> str:
         """DEPRECATED: use manage_queue(action='create', name=...) instead. Create a queue."""
-        from .handlers import handle_create_queue
         from .connection import validate_rabbitmq_name
+        from .handlers import handle_create_queue
 
         validate_rabbitmq_name(name, "Queue name")
-        handle_create_queue(module._get_admin(), name, vhost, queue_type, durable, False, arguments)
+        handle_create_queue(
+            module._get_admin(), name, vhost, queue_type, durable, False, arguments
+        )
         return f"Queue {name} created ({queue_type})"

@@ -1,40 +1,12 @@
 # mcp-server-rabbitmq
 
-A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for RabbitMQ broker management and operations.
+A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for RabbitMQ broker management and operations. It lets AI agents manage RabbitMQ brokers conversationally: multi-broker connections, blue-green migration, health checks, and full observability.
 
-## Status
-Active - v4.0.0-rc.1 (PR #51 submitted). 30 tools (28 consolidated + 2 standalone mutative) + 16 composable skills. Published to PyPI.
-
-## Goal
-Provide an open-source MCP server that enables AI agents to manage RabbitMQ brokers conversationally - supporting multi-broker connections, blue-green migration, health checks, and full observability.
-
-## Key Files
-- `src/server.py` - Main MCP server implementation
-- `src/auth.py` - Authentication (SIMPLE + OAuth)
-- `src/rabbitmq/module_v4.py` - v4 consolidated tool registration (28 enum-based dispatchers)
-- `src/rabbitmq/module.py` - v3 tool registration (59 tools, legacy)
-- `src/rabbitmq/compat_v3.py` - Deprecated v3 name aliases for --v1-compat
-- `pyproject.toml` - Package metadata and dependencies
-- `docker-compose.yml` - Local RabbitMQ for development
-- `example/` - Usage examples
-
-## Context
-**GitHub:** github.com/amazon-mq/mcp-server-rabbitmq
-**Package:** `amq-mcp-server-rabbitmq` on PyPI
-**Stack:** Python, FastMCP framework, uv package manager
-
-Mutative tools are gated behind `--allow-mutative-tools` flag (off by default). Supports both stdio and Streamable HTTP transports with JWKS auth for remote deployment.
-
-## Related Projects
-- [genai](../genai) - GTM strategy and blog for this server
-- [amqp-agent-protocol](../amqp-agent-protocol) - Protocol-level agent communication (complementary)
-- [kartographer](../kartographer) - Another MCP server in the org (internal)
-
----
+**Package:** [`amq-mcp-server-rabbitmq`](https://pypi.org/project/amq-mcp-server-rabbitmq/) on PyPI · **Stack:** Python, [FastMCP](https://github.com/jlowin/fastmcp), [uv](https://docs.astral.sh/uv/)
 
 ## Features
 
-- **30 tools** (v4) or **59 tools** (v3) for broker management - connections, queues, exchanges, health checks, observability, and blue-green migration
+- **31 tools** in v4 (enum-based dispatchers), or **61 tools** in v3 (one tool per operation) for broker management - connections, queues, exchanges, health checks, observability, and blue-green migration
 - **16 composable skills** - topology visualization, dead letter analysis, capacity planning, and more
 - **Multi-broker support** - connect multiple brokers simultaneously, switch between them by alias
 - **Mutative tools gated** behind `--allow-mutative-tools` flag (off by default for safety)
@@ -68,7 +40,7 @@ uv pip install amq-mcp-server-rabbitmq
 }
 ```
 
-### Configure in Claude Desktop (v3 mode - legacy, 59 tools)
+### Configure in Claude Desktop (v3 mode - legacy, 61 tools)
 
 ```json
 {
@@ -96,13 +68,13 @@ You: Create a dead letter exchange and bind it to the orders queue
 
 ## v4 Mode
 
-v4 consolidates 59 individual tools into 28 enum-based dispatchers, reducing context window pressure while preserving full functionality. Each consolidated tool accepts an `action` parameter to select the operation.
+v4 consolidates the 61 individual v3 tools into 31 enum-based dispatchers (29 consolidated groups plus the 2 standalone mutative tools below), reducing context window pressure while preserving full functionality. Each consolidated tool accepts an `action` parameter to select the operation.
 
 ### Key Differences from v3
 
 | Aspect | v3 | v4 |
 |--------|----|----|
-| Tool count | 59 | 28 (+ 2 standalone mutative) |
+| Tool count | 61 | 31 (29 dispatchers + 2 standalone mutative) |
 | Naming | `rabbitmq_broker_list_queues` | `queues(action="list")` |
 | Loading | All or nothing | Selectable via `--tool-groups` |
 | Compat | N/A | `--v1-compat` registers v3 aliases |
@@ -122,7 +94,7 @@ These require the `mutative` tool group to be loaded.
 
 | Argument | Description |
 |----------|-------------|
-| `--v4` | Enable v4 consolidated tool mode (28 tools instead of 59) |
+| `--v4` | Enable v4 consolidated tool mode (31 tools instead of 61) |
 | `--tool-groups` | Select which tool groups to load (space-separated). Options: core, read, mutative, migration, observability, health |
 | `--v1-compat` | Register v3 tool name aliases alongside v4 tools (for migration) |
 | `--allow-mutative-tools` | Enable tools that can create, modify, or delete resources (default: off) |
@@ -153,7 +125,7 @@ These require the `mutative` tool group to be loaded.
 
 ## Tools (v3 layout)
 
-The following table shows the v3 tool names. In v4 mode, these are consolidated into 28 enum-based dispatchers (see the v4 Mode section above). Use `--v1-compat` to register these names alongside v4 tools.
+The following table shows the v3 tool names. In v4 mode, these are consolidated into 31 enum-based dispatchers (see the v4 Mode section above). Use `--v1-compat` to register these names alongside v4 tools.
 
 ### Connection and Session (6 tools)
 
@@ -298,6 +270,16 @@ Skills are composable workflows accessed via `rabbitmq_broker_get_skill`. They g
 | `queue_health_assessment` | Assess queue type, consumers, depth, and policy coverage | get_queue_info, get_guideline |
 | `resource_headroom_check` | Compute resource utilization % vs watermarks, project time-to-alarm | get_cluster_nodes_info |
 | `policy_conflict_detection` | Find overlapping policy patterns and report priority winners | list_policies |
+
+## Documentation
+
+In-depth guides live in [docs/](docs/):
+
+- [Multi-Broker](docs/multi-broker.md) — register and switch between brokers by alias
+- [Authentication](docs/authentication.md) — broker auth (SIMPLE/OAuth) and HTTP JWT/JWKS Bearer auth
+- [Skills](docs/skills.md) — the 16 composable workflow recipes
+- [Migration](docs/migration.md) — blue-green migration, definition transforms, federation draining
+- [CHANGELOG](CHANGELOG.md) — version history and the full v3 → v4 tool-name mapping
 
 ## Development
 

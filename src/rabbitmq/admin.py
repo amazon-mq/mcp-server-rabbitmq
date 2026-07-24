@@ -57,7 +57,12 @@ class RabbitMQAdmin:
         """Make HTTP request to RabbitMQ API."""
         url = f"{self.base_url}/{endpoint}"
         response = requests.request(
-            method, url, headers=self.headers, json=data, verify=True, timeout=REQUEST_TIMEOUT
+            method,
+            url,
+            headers=self.headers,
+            json=data,
+            verify=(self.protocol == "https"),
+            timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         return response
@@ -136,7 +141,9 @@ class RabbitMQAdmin:
         if queue:
             validate_rabbitmq_name(queue, "Queue name")
             queue_encoded = quote(queue, safe="")
-            response = self._make_request("GET", f"queues/{vhost_encoded}/{queue_encoded}/bindings")
+            response = self._make_request(
+                "GET", f"queues/{vhost_encoded}/{queue_encoded}/bindings"
+            )
         elif exchange:
             validate_rabbitmq_name(exchange, "Exchange name")
             exchange_encoded = quote(exchange, safe="")
@@ -252,7 +259,9 @@ class RabbitMQAdmin:
         data: dict = {"routing_key": routing_key}
         if arguments:
             data["arguments"] = arguments
-        self._make_request("POST", f"bindings/{vhost_encoded}/e/{exchange_encoded}/q/{queue_encoded}", data=data)
+        self._make_request(
+            "POST", f"bindings/{vhost_encoded}/e/{exchange_encoded}/q/{queue_encoded}", data=data
+        )
 
     def delete_binding(self, vhost: str, exchange: str, queue: str, props_key: str) -> None:
         """Delete a binding."""
@@ -261,7 +270,8 @@ class RabbitMQAdmin:
         queue_encoded = quote(queue, safe="")
         props_encoded = quote(props_key, safe="")
         self._make_request(
-            "DELETE", f"bindings/{vhost_encoded}/e/{exchange_encoded}/q/{queue_encoded}/{props_encoded}"
+            "DELETE",
+            f"bindings/{vhost_encoded}/e/{exchange_encoded}/q/{queue_encoded}/{props_encoded}",
         )
 
     def list_policies(self, vhost: str = "/") -> list[dict]:
@@ -338,7 +348,9 @@ class RabbitMQAdmin:
         vhost_encoded = quote(vhost, safe="")
         queue_encoded = quote(queue, safe="")
         data = {"count": count, "ackmode": ackmode, "encoding": encoding}
-        response = self._make_request("POST", f"queues/{vhost_encoded}/{queue_encoded}/get", data=data)
+        response = self._make_request(
+            "POST", f"queues/{vhost_encoded}/{queue_encoded}/get", data=data
+        )
         return response.json()
 
     def list_channels(self) -> list[dict]:
@@ -399,7 +411,9 @@ class RabbitMQAdmin:
         """Delete a federation upstream."""
         vhost_encoded = quote(vhost, safe="")
         name_encoded = quote(name, safe="")
-        self._make_request("DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name_encoded}")
+        self._make_request(
+            "DELETE", f"parameters/federation-upstream/{vhost_encoded}/{name_encoded}"
+        )
 
     # --- Health & Ops ---
 
@@ -408,7 +422,10 @@ class RabbitMQAdmin:
         url = f"{self.base_url}/{endpoint}"
         try:
             response = requests.get(
-                url, headers=self.headers, verify=True, timeout=REQUEST_TIMEOUT
+                url,
+                headers=self.headers,
+                verify=(self.protocol == "https"),
+                timeout=REQUEST_TIMEOUT,
             )
             return {"status": response.status_code, "ok": response.status_code == 200}
         except requests.RequestException as e:
