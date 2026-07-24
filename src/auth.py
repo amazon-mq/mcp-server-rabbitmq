@@ -69,7 +69,9 @@ class JWKSBearerVerifier(TokenVerifier):
             logger.debug("Auth rejected: %s", e)
             return None
 
-    async def _attempt_verify(self, token: str, authlib_jwt: Any, JsonWebKey: Any) -> AccessToken | None:
+    async def _attempt_verify(
+        self, token: str, authlib_jwt: Any, JsonWebKey: Any
+    ) -> AccessToken | None:
         import logging
 
         logger = logging.getLogger(__name__)
@@ -81,7 +83,11 @@ class JWKSBearerVerifier(TokenVerifier):
         claims.validate()
 
         if self.issuer and claims.get("iss") != self.issuer:
-            logger.debug("Auth rejected: issuer mismatch (expected=%s, got=%s)", self.issuer, claims.get("iss"))
+            logger.debug(
+                "Auth rejected: issuer mismatch (expected=%s, got=%s)",
+                self.issuer,
+                claims.get("iss"),
+            )
             return None
         if self.audience:
             aud = claims.get("aud")
@@ -90,13 +96,19 @@ class JWKSBearerVerifier(TokenVerifier):
                     logger.debug("Auth rejected: audience %s not in %s", self.audience, aud)
                     return None
             elif aud != self.audience:
-                logger.debug("Auth rejected: audience mismatch (expected=%s, got=%s)", self.audience, aud)
+                logger.debug(
+                    "Auth rejected: audience mismatch (expected=%s, got=%s)", self.audience, aud
+                )
                 return None
 
         token_scopes = claims.get("scope", "").split() if claims.get("scope") else []
         if self.required_scopes:
             if not all(s in token_scopes for s in self.required_scopes):
-                logger.debug("Auth rejected: missing scopes (required=%s, got=%s)", self.required_scopes, token_scopes)
+                logger.debug(
+                    "Auth rejected: missing scopes (required=%s, got=%s)",
+                    self.required_scopes,
+                    token_scopes,
+                )
                 return None
 
         return AccessToken(
