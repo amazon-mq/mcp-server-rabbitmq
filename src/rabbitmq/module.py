@@ -41,8 +41,11 @@ from .handlers import (
     handle_enqueue,
     handle_export_definitions,
     handle_fanout,
+    handle_find_queues_by_threshold,
     handle_get_bindings,
+    handle_get_broker_overview,
     handle_get_cluster_nodes,
+    handle_get_connection_churn,
     handle_get_definition,
     handle_get_exchange_info,
     handle_get_guidelines,
@@ -51,6 +54,7 @@ from .handlers import (
     handle_get_permissions,
     handle_get_policy,
     handle_get_queue_info,
+    handle_get_skill,
     handle_import_definitions,
     handle_is_broker_in_alarm,
     handle_is_node_in_quorum_critical,
@@ -214,6 +218,11 @@ class RabbitMQModule:
             """
             result = handle_get_guidelines(guideline_name)
             return str(result)
+
+        @self.mcp.tool()
+        def rabbitmq_broker_get_skill(skill_name: str) -> str:
+            """Get a workflow recipe. Available: pre_flight_migration_check, migrate_definitions, setup_federation, queue_metrics_analysis, node_resource_analysis, export_topology_graph, trace_message_route, find_orphaned_queues, find_unbound_exchanges, trace_dead_letter_chain, inspect_dead_letters, dlq_summary, broker_recommendations, queue_health_assessment, resource_headroom_check, policy_conflict_detection"""
+            return handle_get_skill(skill_name)
 
     def __register_read_only_tools(self):
         @self.mcp.tool()
@@ -391,6 +400,35 @@ class RabbitMQModule:
         def rabbitmq_broker_whoami() -> dict:
             """Get the current authenticated user on the active broker."""
             return handle_whoami(self._get_admin())
+
+        @self.mcp.tool()
+        def rabbitmq_broker_get_overview() -> dict:
+            """Broker version, totals, and rates."""
+            return handle_get_broker_overview(self._get_admin())
+
+        @self.mcp.tool()
+        def rabbitmq_broker_find_queues_by_threshold(
+            min_depth: int | None = None,
+            min_idle_seconds: int | None = None,
+            no_consumers: bool = False,
+            min_unacked: int | None = None,
+            vhost: str = "/",
+        ) -> list[dict]:
+            """Find queues exceeding threshold criteria.
+
+            min_depth: minimum message count
+            min_idle_seconds: minimum seconds since last activity
+            no_consumers: only queues with zero consumers
+            min_unacked: minimum unacknowledged message count
+            """
+            return handle_find_queues_by_threshold(
+                self._get_admin(), min_depth, min_idle_seconds, no_consumers, min_unacked, vhost
+            )
+
+        @self.mcp.tool()
+        def rabbitmq_broker_get_connection_churn() -> dict:
+            """Connection and channel churn rates."""
+            return handle_get_connection_churn(self._get_admin())
 
     def __register_mutative_tools(self):
         @self.mcp.tool()
