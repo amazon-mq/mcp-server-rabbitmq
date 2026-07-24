@@ -57,7 +57,12 @@ class RabbitMQAdmin:
         """Make HTTP request to RabbitMQ API."""
         url = f"{self.base_url}/{endpoint}"
         response = requests.request(
-            method, url, headers=self.headers, json=data, verify=True, timeout=REQUEST_TIMEOUT
+            method,
+            url,
+            headers=self.headers,
+            json=data,
+            verify=(self.protocol == "https"),
+            timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         return response
@@ -383,7 +388,10 @@ class RabbitMQAdmin:
         url = f"{self.base_url}/{endpoint}"
         try:
             response = requests.get(
-                url, headers=self.headers, verify=True, timeout=REQUEST_TIMEOUT
+                url,
+                headers=self.headers,
+                verify=(self.protocol == "https"),
+                timeout=REQUEST_TIMEOUT,
             )
             return {"status": response.status_code, "ok": response.status_code == 200}
         except requests.RequestException as e:

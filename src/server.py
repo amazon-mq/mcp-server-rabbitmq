@@ -9,7 +9,6 @@ from fastmcp import FastMCP
 from loguru import logger
 
 from .auth import JWKSBearerVerifier
-
 from .constant import MCP_SERVER_VERSION
 from .rabbitmq.module import RabbitMQModule
 

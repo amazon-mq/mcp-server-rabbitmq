@@ -49,7 +49,8 @@ class JWKSBearerVerifier(TokenVerifier):
     async def verify_token(self, token: str) -> AccessToken | None:
         import logging
 
-        from authlib.jose import JsonWebKey, jwt as authlib_jwt
+        from authlib.jose import JsonWebKey
+        from authlib.jose import jwt as authlib_jwt
         from authlib.jose.errors import JoseError
 
         logger = logging.getLogger(__name__)
