@@ -2,6 +2,12 @@
 
 Guides for the RabbitMQ MCP server. Start with the [project README](../README.md) for install and the full tool/skill reference, then dive into the topic guides here.
 
+> **Tool names:** these guides use the **v3 tool names** (e.g. `rabbitmq_broker_list_queues`). In
+> **v4 mode** (`--v4`) the same operations are reached through consolidated dispatchers
+> (e.g. `queues(action="list")`). See the [v4 Mode section](../README.md#v4-mode) and the
+> [migration guide in the CHANGELOG](../CHANGELOG.md) for the full v3 → v4 name mapping. Concepts
+> and workflows are identical between modes.
+
 | Guide | What it covers |
 |-------|----------------|
 | [Multi-Broker](./multi-broker.md) | Registering and switching between multiple brokers by alias |

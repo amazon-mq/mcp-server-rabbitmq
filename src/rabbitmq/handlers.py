@@ -16,7 +16,7 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 from .admin import RabbitMQAdmin
 from .connection import RabbitMQConnection
@@ -77,17 +77,21 @@ def handle_get_skill(skill_name: str) -> str:
 def handle_enqueue(rabbitmq: RabbitMQConnection, queue: str, message: str):
     """Send a message to a RabbitMQ queue."""
     connection, channel = rabbitmq.get_channel()
-    channel.queue_declare(queue, durable=True)
-    channel.basic_publish(exchange="", routing_key=queue, body=message)
-    connection.close()
+    try:
+        channel.queue_declare(queue, durable=True)
+        channel.basic_publish(exchange="", routing_key=queue, body=message)
+    finally:
+        connection.close()
 
 
 def handle_fanout(rabbitmq: RabbitMQConnection, exchange: str, message: str):
     """Publish a message to a fanout exchange."""
     connection, channel = rabbitmq.get_channel()
-    channel.exchange_declare(exchange=exchange, exchange_type="fanout", durable=True)
-    channel.basic_publish(exchange=exchange, routing_key="", body=message)
-    connection.close()
+    try:
+        channel.exchange_declare(exchange=exchange, exchange_type="fanout", durable=True)
+        channel.basic_publish(exchange=exchange, routing_key="", body=message)
+    finally:
+        connection.close()
 
 
 ################################################
@@ -209,7 +213,7 @@ def handle_get_connection_churn(rabbitmq_admin: RabbitMQAdmin) -> dict:
 def handle_is_broker_in_alarm(rabbitmq_admin: RabbitMQAdmin) -> bool:
     """Check the alarm status of the RabbitMQ broker."""
     status = rabbitmq_admin.get_alarm_status()
-    return False if status == 200 else True
+    return status != 200
 
 
 def handle_is_node_in_quorum_critical(rabbitmq_admin: RabbitMQAdmin) -> bool:
@@ -238,15 +242,16 @@ def handle_list_connections(rabbitmq_admin: RabbitMQAdmin) -> list[Any]:
     """List all connections on the RabbitMQ broker."""
     filtered_conn = []
     for c in rabbitmq_admin.list_connections():
+        connected_at = c.get("connected_at", 0)
         filtered_conn.append(
             {
-                "auth_mechanism": c["auth_mechanism"],
-                "num_channels": c["channels"],
-                "client_properties": c["client_properties"],
-                "connected_at": datetime.fromtimestamp(c["connected_at"] / 1000).strftime(
+                "auth_mechanism": c.get("auth_mechanism", ""),
+                "num_channels": c.get("channels", 0),
+                "client_properties": c.get("client_properties", {}),
+                "connected_at": datetime.fromtimestamp(connected_at / 1000).strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
-                "state": c["state"],
+                "state": c.get("state", ""),
             }
         )
 
@@ -273,7 +278,7 @@ def handle_get_cluster_nodes(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
                 "disk_free_in_bytes": r["disk_free"],
                 "mem_limit_in_bytes": r["mem_limit"],
                 "mem_used_in_bytes": r["mem_used"],
-                "mem_used_in_percentage": (r["mem_used"] / r["mem_limit"]) * 100,
+                "mem_used_in_percentage": (r["mem_used"] / (r["mem_limit"] or 1)) * 100,
                 "rates_mode": r["rates_mode"],
                 "uptime_in_milli_seconds": r["uptime"],
                 "running": r["running"],
@@ -294,13 +299,13 @@ def handle_get_cluster_node_memory(rabbitmq_admin: RabbitMQAdmin, node_name: str
 ## Queues
 
 
-def handle_list_queues(rabbitmq_admin: RabbitMQAdmin) -> List[str]:
+def handle_list_queues(rabbitmq_admin: RabbitMQAdmin) -> list[str]:
     """List all queue names in the RabbitMQ server."""
     result = rabbitmq_admin.list_queues()
     return [queue["name"] for queue in result]
 
 
-def handle_list_queues_by_vhost(rabbitmq_admin: RabbitMQAdmin, vhost: str = "/") -> List[str]:
+def handle_list_queues_by_vhost(rabbitmq_admin: RabbitMQAdmin, vhost: str = "/") -> list[str]:
     """List all queue names in a specific vhost."""
     result = rabbitmq_admin.list_queues_by_vhost(vhost)
     return [queue["name"] for queue in result]
@@ -324,16 +329,16 @@ def handle_purge_queue(rabbitmq_admin: RabbitMQAdmin, queue: str, vhost: str = "
 ## Exchanges
 
 
-def handle_list_exchanges(rabbitmq_admin: RabbitMQAdmin) -> List[str]:
+def handle_list_exchanges(rabbitmq_admin: RabbitMQAdmin) -> list[str]:
     """List all exchange names in the RabbitMQ server."""
     result = rabbitmq_admin.list_exchanges()
     return [exchange["name"] for exchange in result]
 
 
-def handle_list_exchanges_by_vhost(rabbitmq_admin: RabbitMQAdmin, vhost: str = "/") -> List[str]:
+def handle_list_exchanges_by_vhost(rabbitmq_admin: RabbitMQAdmin, vhost: str = "/") -> list[str]:
     """List all exchange names in a specific vhost."""
     result = rabbitmq_admin.list_exchanges_by_vhost(vhost)
-    return [queue["name"] for queue in result]
+    return [exchange["name"] for exchange in result]
 
 
 def handle_delete_exchange(rabbitmq_admin: RabbitMQAdmin, exchange: str, vhost: str = "/") -> None:
@@ -351,7 +356,7 @@ def handle_get_exchange_info(
 ## Vhosts
 
 
-def handle_list_vhosts(rabbitmq_admin: RabbitMQAdmin) -> List[str]:
+def handle_list_vhosts(rabbitmq_admin: RabbitMQAdmin) -> list[str]:
     """List all vhost names in the RabbitMQ server."""
     result = rabbitmq_admin.list_vhosts()
     return [vhost["name"] for vhost in result]
@@ -360,7 +365,7 @@ def handle_list_vhosts(rabbitmq_admin: RabbitMQAdmin) -> List[str]:
 ## Shovels
 
 
-def handle_list_shovels(rabbitmq_admin: RabbitMQAdmin) -> List[dict]:
+def handle_list_shovels(rabbitmq_admin: RabbitMQAdmin) -> list[dict]:
     """List all shovels in the RabbitMQ server."""
     return rabbitmq_admin.list_shovels()
 
@@ -597,6 +602,10 @@ def handle_export_definitions(
     from .transforms import apply_transforms
 
     defs = rabbitmq_admin.get_broker_definition()
+    # Always strip sensitive credential fields before returning
+    for user in defs.get("users", []):
+        user.pop("password_hash", None)
+        user.pop("hashing_algorithm", None)
     if transforms:
         defs = apply_transforms(defs, transforms)
     return defs
@@ -634,6 +643,20 @@ def _item_key(section: str, item: dict) -> str:
     return item.get("name", str(item))
 
 
+def _redact_uri_password(uri: str) -> str:
+    """Redact the password from an AMQP URI for safe display."""
+    from urllib.parse import urlparse, urlunparse
+
+    parsed = urlparse(uri)
+    if parsed.password:
+        netloc = f"{parsed.username}:****@{parsed.hostname}"
+        if parsed.port:
+            netloc += f":{parsed.port}"
+        redacted = parsed._replace(netloc=netloc)
+        return urlunparse(redacted)
+    return uri
+
+
 def handle_setup_federation(
     rabbitmq_admin: RabbitMQAdmin,
     upstream_name: str,
@@ -667,6 +690,7 @@ def handle_setup_federation(
     return {
         "status": "ok",
         "upstream": upstream_name,
+        "uri": _redact_uri_password(upstream_uri),
         "policy": f"federation-{upstream_name}",
         "pattern": policy_pattern,
     }
