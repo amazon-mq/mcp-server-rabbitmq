@@ -212,6 +212,16 @@ Skills are composable workflows accessed via `rabbitmq_broker_get_skill`. They g
 | `resource_headroom_check` | Compute resource utilization % vs watermarks, project time-to-alarm | get_cluster_nodes_info |
 | `policy_conflict_detection` | Find overlapping policy patterns and report priority winners | list_policies |
 
+## Documentation
+
+In-depth guides live in [docs/](docs/):
+
+- [Multi-Broker](docs/multi-broker.md) — register and switch between brokers by alias
+- [Authentication](docs/authentication.md) — broker auth (SIMPLE/OAuth) and HTTP JWT/JWKS Bearer auth
+- [Skills](docs/skills.md) — the 16 composable workflow recipes
+- [Migration](docs/migration.md) — blue-green migration, definition transforms, federation draining
+- [CHANGELOG](CHANGELOG.md) — version history
+
 ## Development
 
 ### Prerequisites
