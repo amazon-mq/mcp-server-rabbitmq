@@ -20,7 +20,7 @@ The server ships two tool layouts so you can choose your upgrade path:
 | Version | Layout | Upgrade impact | Choose it when |
 |---------|--------|----------------|----------------|
 | **v3** (`3.x`) | 61 tools, one per operation (e.g. `rabbitmq_broker_list_queues`). All v2.x tool names preserved. | **Non-breaking** - a drop-in upgrade from v2.x. | You have existing prompts/integrations bound to v2/v3 tool names and want zero churn. |
-| **v4** (`4.x`) | 31 enum-based dispatchers (e.g. `queues(action="list")`), selectable via `--tool-groups`. | **Breaking** - tool names change (opt in with `--v4`). `--v1-compat` re-registers v3 aliases to ease migration. | You want lower context-window usage and per-group tool loading. |
+| **v4** (`4.x`) | 31 enum-based dispatchers (e.g. `queues(action="list")`), selectable via `--tool-groups`. | **Breaking** - tool names change (opt in with `--v4`). `--v1-compat` re-registers v3 aliases to ease migration. | You want ~60% fewer tool-description tokens per turn, faster startup, and per-group tool loading (see [Why opt in to v4](#why-opt-in-to-v4)). |
 
 Both are published from this repo. v4 defaults to v3 behavior unless you pass `--v4`, so installing the latest package never breaks an existing setup on its own. See [v4 Mode](#v4-mode) for the full mapping and the [CHANGELOG](CHANGELOG.md) for the v3 → v4 tool-name table.
 
@@ -80,6 +80,13 @@ You: Create a dead letter exchange and bind it to the orders queue
 ## v4 Mode
 
 v4 consolidates the 61 individual v3 tools into 31 enum-based dispatchers (29 consolidated groups plus the 2 standalone mutative tools below), reducing context window pressure while preserving full functionality. Each consolidated tool accepts an `action` parameter to select the operation.
+
+### Why opt in to v4
+
+- **Fewer tokens.** Every tool's name and description is sent to the model on every request, whether or not it's used. v4 roughly halves the tool count (61 → 31) and cuts that idle tool-description text by about 60% - from ~2,300 tokens to ~900 tokens (name + docstrings). That is context budget returned to the actual conversation on every single turn, and a smaller tool list also makes the model faster and more accurate at picking the right tool.
+- **Faster startup.** Fewer tools means less to register and advertise during the MCP handshake, so the server connects and the client finishes tool discovery sooner. With `--tool-groups` you can trim further - e.g. load only `read`/`health` for a monitoring agent - registering just the tools that session needs.
+
+Numbers above are measured against this repo's tool definitions; exact token counts vary by client and model tokenizer.
 
 ### Key Differences from v3
 
