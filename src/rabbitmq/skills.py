@@ -43,11 +43,11 @@ SKILLS: dict[str, dict] = {
         "steps": [
             "Call get_broker_overview on the target broker and check exchange_types for x-federation-upstream.",
             "If federation plugin is not enabled, report error and stop.",
-            "Call import_definitions to create a federation upstream parameter with the source broker URI.",
-            "Call import_definitions to create a policy matching the desired queue pattern with federation-upstream set.",
+            "Call create_federation_upstream to register the source broker URI as an upstream.",
+            "Call create_policy to match the desired queue pattern with federation-upstream set.",
             "Confirm federation is active by checking the overview again for federation link status.",
         ],
-        "composes": ["get_broker_overview", "import_definitions"],
+        "composes": ["get_broker_overview", "create_federation_upstream", "create_policy"],
     },
     "queue_metrics_analysis": {
         "name": "queue_metrics_analysis",

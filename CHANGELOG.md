@@ -3,7 +3,7 @@
 ## 4.0.0-rc.1 (2026-05-29)
 
 ### Breaking Changes
-- New `--v4` flag activates consolidated tool layout (61 tools -> 28)
+- New `--v4` flag activates consolidated tool layout (61 tools -> 31)
 - Tool names changed (see Migration Guide below)
 - Default mode unchanged (no --v4 = v3 behavior)
 
