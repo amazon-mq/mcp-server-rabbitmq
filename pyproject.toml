@@ -61,7 +61,7 @@ select = ["E", "F", "I", "B", "Q"]
 ignore = ["E203", "E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["mcp_server_rabbitmq"]
+known-first-party = ["src"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -69,7 +69,7 @@ indent-style = "space"
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src/tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -79,7 +79,7 @@ exclude_dirs = ["tests", ".venv"]
 skips = ["B101"]
 
 [tool.pyright]
-include = ["mcp_server_rabbitmq"]
+include = ["src"]
 exclude = ["**/__pycache__", ".venv"]
 typeCheckingMode = "basic"
 pythonVersion = "3.10"

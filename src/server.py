@@ -26,7 +26,9 @@ class RabbitMQMCPServer:
             instructions="""Manage RabbitMQ message brokers and interact with queues and exchanges.""",
         )
 
-        rmq_module = RabbitMQModule(self.mcp)
+        # server.py imports FastMCP from `fastmcp`; module.py from
+        # `mcp.server.fastmcp`. Runtime-compatible, but pyright sees two types.
+        rmq_module = RabbitMQModule(self.mcp)  # pyright: ignore[reportArgumentType]
         rmq_module.default_management_port = management_port
         rmq_module.register_rabbitmq_management_tools(allow_mutative_tools)
 

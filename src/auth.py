@@ -40,7 +40,7 @@ class JWKSBearerVerifier(TokenVerifier):
             resp.raise_for_status()
             self._jwks_cache = resp.json()
             self._jwks_fetched_at = time.time()
-        return self._jwks_cache
+        return self._jwks_cache  # pyright: ignore[reportReturnType]
 
     def _invalidate_cache(self) -> None:
         self._jwks_cache = None
