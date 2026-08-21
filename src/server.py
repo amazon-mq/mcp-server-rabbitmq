@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP
 from .auth import JWKSBearerVerifier
 from .constant import MCP_SERVER_VERSION
 from .rabbitmq.compat_v3 import register_v3_compat_tools
+from .rabbitmq.env_config import BrokerRegistry, auto_connect_from_env
 from .rabbitmq.module import RabbitMQModule
 from .rabbitmq.module_v4 import TOOL_GROUPS, RabbitMQModuleV4
 
@@ -46,6 +47,7 @@ class RabbitMQMCPServer:
         # Initialize FastMCP
         self.mcp = FastMCP(**mcp_kwargs)
 
+        registry: BrokerRegistry
         if use_v4:
             groups = tool_groups or (
                 ("core", "read", "observability", "health")
@@ -59,10 +61,16 @@ class RabbitMQMCPServer:
             if v1_compat:
                 register_v3_compat_tools(self.mcp, module)
                 self.logger.info("v1-compat: registered deprecated v3 tool aliases")
+            registry = module
         else:
             rmq_module = RabbitMQModule(self.mcp)
             rmq_module.default_management_port = management_port
             rmq_module.register_rabbitmq_management_tools(allow_mutative_tools)
+            registry = rmq_module
+
+        # Optional startup connection from RABBITMQ_*_ENDPOINT. Applies to both
+        # tool layouts, so a single call site keeps them from drifting apart.
+        auto_connect_from_env(registry)
 
     def run(self, args):
         """Run the MCP server with the provided arguments."""

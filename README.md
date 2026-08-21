@@ -9,6 +9,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for Rab
 - **31 tools** in v4 (enum-based dispatchers), or **61 tools** in v3 (one tool per operation) for broker management - connections, queues, exchanges, health checks, observability, and blue-green migration
 - **16 composable skills** - topology visualization, dead letter analysis, capacity planning, and more
 - **Multi-broker support** - connect multiple brokers simultaneously, switch between them by alias
+- **Startup connection from the environment** - set `RABBITMQ_AMQP_ENDPOINT` so the tools work without a connect call, for hosts that respawn the server per session
 - **Mutative tools gated** behind `--allow-mutative-tools` flag (off by default for safety)
 - **Tool groups** - load only the tools you need with `--tool-groups`
 - **Security hardened** - SSRF protection, credential stripping, TLS warnings, JWKS HTTPS enforcement
@@ -140,6 +141,50 @@ These require the `mutative` tool group to be loaded.
 | Variable | Description |
 |----------|-------------|
 | `FASTMCP_LOG_LEVEL` | Log level: DEBUG, INFO, WARNING (default), ERROR |
+| `RABBITMQ_AMQP_ENDPOINT` | Connect at startup, e.g. `amqps://user:pass@host:5671`. See below. |
+| `RABBITMQ_MANAGEMENT_ENDPOINT` | Management API endpoint, e.g. `https://user:pass@host:443`. See below. |
+| `RABBITMQ_ALIAS` | Alias for the environment-configured broker (default: its hostname) |
+
+#### Connecting at startup
+
+Normally the agent calls the connect tool once per session. Some MCP hosts,
+particularly aggregators and proxies, start a fresh server process per session
+or per tool call, so that connection state does not survive and later calls fail
+with "No active broker". Setting an endpoint URI makes the server connect during
+startup instead, so the tools work on every spawn:
+
+```json
+{
+  "mcpServers": {
+    "rabbitmq": {
+      "command": "uvx",
+      "args": ["amq-mcp-server-rabbitmq@latest", "--v4"],
+      "env": {
+        "RABBITMQ_AMQP_ENDPOINT": "amqps://admin:pass@broker.example.com:5671"
+      }
+    }
+  }
+}
+```
+
+Details:
+
+- **The scheme selects TLS and the default port.** `amqps` is TLS on 5671, `amqp`
+  is plaintext on 5672, `https` is TLS on 443, `http` is plaintext on 15672. An
+  explicit `:port` overrides the default.
+- **Either variable is enough.** Give only `RABBITMQ_AMQP_ENDPOINT` and the
+  management endpoint is derived from it (same host and credentials, matching
+  TLS), and vice versa. Set both when they differ, for example when the
+  management API is on another host or uses separate credentials.
+- **`--management-port` still applies** as the derived management port when
+  `RABBITMQ_MANAGEMENT_ENDPOINT` is not set.
+- **Percent-encode reserved characters in credentials.** A password of `p@ss/word`
+  is written `p%40ss%2Fword`.
+- **Failures are non-fatal.** An unreachable broker or malformed URI logs a
+  warning and leaves the connect tool available, rather than killing the server.
+- Works in both v3 and v4 mode. Credentials are never written to logs or error
+  messages. OAuth is not supported through these variables; use the OAuth connect
+  tool.
 
 ## Tools (v3 layout)
 
