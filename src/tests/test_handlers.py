@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import subprocess
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -175,6 +179,39 @@ class TestHandlers:
     def test_handle_get_guidelines_invalid(self):
         with pytest.raises(ValueError, match="doesn't exist"):
             handle_get_guidelines("invalid_guide")
+
+    def test_handle_get_guidelines_is_locale_independent(self):
+        """Guidelines must decode as UTF-8 regardless of the ambient locale.
+
+        Two guideline docs contain U+26A0. Reading them without an explicit
+        encoding falls back to the locale encoding, which raises
+        UnicodeDecodeError wherever that is not UTF-8 (Windows cp1252, or any
+        POSIX process started under LC_ALL=C). Run in a subprocess because the
+        locale encoding is fixed at interpreter startup.
+        """
+        repo_root = Path(__file__).resolve().parents[2]
+        env = {
+            **os.environ,
+            "LC_ALL": "C",
+            "LC_CTYPE": "C",
+            "PYTHONCOERCECLOCALE": "0",  # keep C from being coerced to C.UTF-8
+            "PYTHONUTF8": "0",  # keep UTF-8 mode from overriding the locale
+        }
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from src.rabbitmq.handlers import handle_get_guidelines\n"
+                "for name in ('rabbitmq_broker_sizing_guide',\n"
+                "             'rabbitmq_production_deployment_guidelines'):\n"
+                "    assert '\\u26a0' in handle_get_guidelines(name), name\n",
+            ],
+            cwd=repo_root,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
 
     def test_handle_get_definition_strips_password_hash(self, mock_admin):
         mock_admin.get_broker_definition.return_value = {
