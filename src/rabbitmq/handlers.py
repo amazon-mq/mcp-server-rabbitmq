@@ -45,7 +45,10 @@ def handle_get_guidelines(guideline_name: str):
     if not filename:
         available = ", ".join(guidelines.keys())
         raise ValueError(f"'{guideline_name}' doesn't exist. Available: {available}")
-    return (script_dir / "doc" / filename).read_text()
+    # Explicit encoding: read_text() otherwise uses the platform's locale
+    # encoding, so a non-ASCII byte in a guideline raises UnicodeDecodeError
+    # on Windows (cp1252).
+    return (script_dir / "doc" / filename).read_text(encoding="utf-8")
 
 
 def handle_get_skill(skill_name: str) -> str:
