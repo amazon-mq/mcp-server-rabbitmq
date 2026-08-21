@@ -124,25 +124,25 @@ def main():
         "--http-auth-jwks-uri",
         type=str,
         default=None,
-        help="JKWS URI for FastMCP Bearer Auth Provider",
+        help="JWKS URI for JWKS bearer token verification",
     )
     parser.add_argument(
         "--http-auth-issuer",
         type=str,
         default=None,
-        help="Issuer for FastMCP Bearer Auth Provider",
+        help="Expected token issuer (iss) to enforce",
     )
     parser.add_argument(
         "--http-auth-audience",
         type=str,
         default=None,
-        help="Audience for FastMCP Bearer Auth Provider",
+        help="Expected token audience (aud) to enforce",
     )
     parser.add_argument(
         "--http-auth-required-scopes",
         nargs="*",
         default=None,
-        help="Required scope for FastMCP Bearer Auth Provider",
+        help="Required token scopes to enforce",
     )
 
     args = parser.parse_args()

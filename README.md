@@ -2,7 +2,7 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server for RabbitMQ broker management and operations. It lets AI agents manage RabbitMQ brokers conversationally: multi-broker connections, blue-green migration, health checks, and full observability.
 
-**Package:** [`amq-mcp-server-rabbitmq`](https://pypi.org/project/amq-mcp-server-rabbitmq/) on PyPI · **Stack:** Python, [FastMCP](https://github.com/jlowin/fastmcp), [uv](https://docs.astral.sh/uv/)
+**Package:** [`amq-mcp-server-rabbitmq`](https://pypi.org/project/amq-mcp-server-rabbitmq/) on PyPI · **Stack:** Python, [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) (`mcp.server.fastmcp`), [uv](https://docs.astral.sh/uv/)
 
 ## Features
 
@@ -119,10 +119,10 @@ These require the `mutative` tool group to be loaded.
 | `--management-port` | RabbitMQ Management API port (default: 443 for TLS, 15672 for non-TLS) |
 | `--http` | Use Streamable HTTP transport instead of stdio |
 | `--server-port` | Port to run the MCP server on (default: 8888) |
-| `--http-auth-jwks-uri` | JWKS URI for Bearer Auth Provider |
-| `--http-auth-issuer` | Issuer for Bearer Auth Provider |
-| `--http-auth-audience` | Audience for Bearer Auth Provider |
-| `--http-auth-required-scopes` | Required scopes for Bearer Auth Provider |
+| `--http-auth-jwks-uri` | JWKS URI for JWKS bearer token verification |
+| `--http-auth-issuer` | Expected token issuer (`iss`) to enforce |
+| `--http-auth-audience` | Expected token audience (`aud`) to enforce |
+| `--http-auth-required-scopes` | Required token scopes to enforce |
 
 ### Tool Groups (v4)
 
